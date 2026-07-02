@@ -1,0 +1,11 @@
+[
+  {
+    "id": "shutdown-1782458605829",
+    "from": "test-case-auditor",
+    "to": "test-case-auditor",
+    "type": "shutdown_request",
+    "content": "{\"type\":\"shutdown_request\",\"request_id\":\"shutdown-1782458605829\",\"reason\":\"Phase-0 任务已完成，请确认关闭。\",\"from\":\"test-case-auditor\",\"timestamp\":\"2026-06-26T07:23:25.829Z\"}",
+    "timestamp": "2026-06-26T07:23:25.829Z",
+    "read": true
+  }
+]

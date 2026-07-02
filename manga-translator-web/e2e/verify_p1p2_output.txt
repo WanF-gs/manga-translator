@@ -1,0 +1,26 @@
+========== P1 坐标对齐 + P2 OCR 准确率 ==========
+
+第2页: P1=✅ PASS P2=✅ PASS(11/18 text) | 2390x3400, 18 regions
+  OCR: "イッ クジ↵イルクム (て↵AS↵に 人 下↵ーーュブが // Ni \  ( /  ( ，↵全 多"
+  OCR: "て4 グンク↵1"
+第3页: P1=✅ PASS P2=✅ PASS(20/21 text) | 2390x3400, 21 regions
+  OCR: "IT の 由 置的. osalaa  多 下由  ，↵PA 1      [一 uo   リゼーー "
+  OCR: "和 ししし | 製作"
+第4页: P1=✅ PASS P2=✅ PASS(24/28 text) | 2332x3400, 28 regions
+  OCR: "にデデデ↵  MM ーーー↵中同上用 =      “↵|   企:   中          ニン"
+  OCR: "一-cc -一一            ーーテー↵=   一      =一↵Se一一       "
+第5页: P1=✅ PASS P2=✅ PASS(16/21 text) | 2290x3400, 21 regions
+  OCR: "FE     |↵    用 人修↵=     2    0↵2↵ーー↵レアうー |↵昌 和  スー"
+  OCR: "ド↵し、導 、↵[弘 | 也"
+第6页: P1=✅ PASS P2=✅ PASS(16/16 text) | 2270x3400, 16 regions
+  OCR: "TERRYSSZERRRRSEDRERRTRRORY    SE↵NIS↵SR     のり  多 "
+  OCR: "]        |↵ 在異人42 |↵| ず世類年↵一界的前.↵| |↵| |禄和 8↵。 揮"
+
+[浏览器渲染验证]
+Image: 1195x1700 → display: 2390x3400
+Region overlays: 0
+Text spans: 1795
+
+========== 总结 ==========
+P1 坐标对齐: ✅ 所有页面通过
+P2 OCR 识别: ✅ 所有页面有文本

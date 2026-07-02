@@ -1,0 +1,96 @@
+{
+  "annotations": { "list": [{ "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard" }] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0 }] } },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "count(up{job=~\"user-service|project-service|translation-service|image-service|export-service|reader-service|notification-service|ai-gateway\"} == 1)", "legendFormat": "Up", "refId": "A" }
+      ],
+      "title": "运行中的服务",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "count(up{job=~\"user-service|project-service|translation-service|image-service|export-service|reader-service|notification-service|ai-gateway\"} == 0)", "legendFormat": "Down", "refId": "A" }
+      ],
+      "title": "停止的服务",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "displayMode": "gradient", "minVizHeight": 10, "minVizWidth": 0, "namePlacement": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showUnfilled": true, "valueMode": "color" },
+      "targets": [
+        { "expr": "up{job=~\"user-service|project-service|translation-service|image-service|export-service|reader-service|notification-service|ai-gateway|gateway\"}", "legendFormat": "{{job}}", "refId": "A" }
+      ],
+      "title": "服务健康状态",
+      "type": "status-history"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 4 },
+      "id": 4,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(ai_gateway_latency_seconds_bucket[5m])) by (le, endpoint))", "legendFormat": "{{endpoint}} P99", "refId": "A" }
+      ],
+      "title": "AI 端点 P99 延迟",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 12, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{job=\"ai-gateway\"}[1m])) by (handler, status)", "legendFormat": "{{handler}} ({{status}})", "refId": "A" }
+      ],
+      "title": "AI Gateway 请求速率",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "cpm" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 6,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(translation_engine_requests_total[5m])) by (engine)", "legendFormat": "{{engine}}", "refId": "A" }
+      ],
+      "title": "翻译引擎使用分布",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "cpm" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(translation_cache_total[5m])) by (result)", "legendFormat": "{{result}}", "refId": "A" }
+      ],
+      "title": "翻译缓存命中率",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["manga-translator", "ai-health"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "AI服务健康",
+  "uid": "manga-translator-ai-health",
+  "version": 1
+}

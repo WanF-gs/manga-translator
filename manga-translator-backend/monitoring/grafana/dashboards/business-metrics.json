@@ -1,0 +1,95 @@
+{
+  "annotations": { "list": [{ "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard" }] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "sum(rate(business_metrics_total{operation=\"register\"}[1h]))", "legendFormat": "注册", "refId": "A" }
+      ],
+      "title": "注册量 (每小时)",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "sum(rate(business_metrics_total{operation=\"login\"}[1h]))", "legendFormat": "登录", "refId": "A" }
+      ],
+      "title": "登录量 (每小时)",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "sum(rate(business_metrics_total{operation=\"project_create\"}[1h]))", "legendFormat": "项目创建", "refId": "A" }
+      ],
+      "title": "项目创建量 (每小时)",
+      "type": "stat"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "cpm" }, "overrides": [] },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 5 },
+      "id": 4,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(business_metrics_total[5m])) by (operation)", "legendFormat": "{{operation}}", "refId": "A" }
+      ],
+      "title": "业务操作趋势",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "cpm" }, "overrides": [] },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 5 },
+      "id": 5,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(business_metrics_total{operation=\"translation_page\"}[5m]))", "legendFormat": "翻译页数", "refId": "A" }
+      ],
+      "title": "翻译页面数趋势",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "cpm" }, "overrides": [] },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 15 },
+      "id": 6,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(image_processing_requests_total[5m])) by (step, status)", "legendFormat": "{{step}} ({{status}})", "refId": "A" }
+      ],
+      "title": "图像处理管线步骤分布",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false }, "mappings": [], "unit": "cpm" }, "overrides": [] },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 15 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(export_requests_total[5m])) by (format, type)", "legendFormat": "{{format}} ({{type}})", "refId": "A" }
+      ],
+      "title": "导出请求分布",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["manga-translator", "business"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "业务指标",
+  "uid": "manga-translator-business",
+  "version": 1
+}

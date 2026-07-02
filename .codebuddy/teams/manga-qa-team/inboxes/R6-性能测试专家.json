@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-1782443226716-p23otm",
+    "from": "team-lead",
+    "to": "R6-性能测试专家",
+    "type": "message",
+    "content": "## Phase 2 任务：API延迟根因分析与修复方案\n\nPhase 1 Round 0基线测试发现部分API存在10s级别延迟，需要精确定位根因。\n\n### 诊断任务\n1. 抓取慢请求：对以下端点做5次采样，记录每次耗时（p50/p95/p99）：\n   - `POST /api/v1/auth/login`\n   - `GET /api/v1/projects`\n   - `POST /api/v1/projects/:pid/pages/detect`\n   - `POST /api/v1/projects/:pid/pages/ocr`\n   - `POST /api/v1/projects/:pid/pages/translate`\n   - `POST /api/v1/projects/:pid/export`\n\n2. 分层诊断（确定延迟在哪一层）：\n   - Gateway层 → curl直接访问Gateway\n   - Service层 → curl直接访问service端口（绕过Gateway）\n   - AI Gateway → curl直接访问AI Gateway端口\n   - 数据库 → 检查慢查询日志\n\n3. 检查Docker容器资源：\n   ```\n   docker stats --no-stream\n   ```\n   检查CPU/内存是否瓶颈\n\n4. 输出诊断报告到 `reports/api_latency_diagnosis.md`，包含：\n   - 每个端点的p50/p95/p99延迟\n   - 延迟层级定位（Gateway/Service/AI/DB）\n   - 根因分析\n   - 修复建议（给R8的backend修复方向）\n\n### 与R8协作\n诊断结果实时共享给R8，R8负责实施修复。\n\n完成后汇报。\n",
+    "timestamp": "2026-06-26T03:07:06.716Z",
+    "read": true
+  }
+]

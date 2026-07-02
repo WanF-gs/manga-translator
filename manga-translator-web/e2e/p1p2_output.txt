@@ -1,0 +1,172 @@
+[1] 登录...
+   Token obtained: YES
+[2] 获取页面列表...
+   共 344 页
+   测试页: 第2页(54b3b9ae...), 第3页(7fe0e5e1...), 第4页(b1c88614...), 第5页(ed4d1249...), 第6页(5ed32579...)
+
+[3] 开始文字区域检测...
+   检测 第2页 (54b3b9ae-ff18-4ddd-a51d-d3e58186bcc0)...
+   结果: status=200, 检测到 18 个区域
+   检测 第3页 (7fe0e5e1-3de7-4881-be60-ff3f1c7e83cc)...
+   结果: status=200, 检测到 21 个区域
+   检测 第4页 (b1c88614-d0ab-45f8-8328-3cf1bd76d725)...
+   结果: status=200, 检测到 28 个区域
+   检测 第5页 (ed4d1249-6505-490f-9c5c-e2c2fac72e80)...
+   结果: status=200, 检测到 21 个区域
+   检测 第6页 (5ed32579-7ed2-4aec-b7ba-0918e5e02085)...
+   结果: status=200, 检测到 16 个区域
+
+[4] 开始 OCR 识别...
+   OCR 第2页 (54b3b9ae-ff18-4ddd-a51d-d3e58186bcc0)...
+   结果: status=200, OCR区域数=0
+   OCR 第3页 (7fe0e5e1-3de7-4881-be60-ff3f1c7e83cc)...
+   结果: status=200, OCR区域数=0
+   OCR 第4页 (b1c88614-d0ab-45f8-8328-3cf1bd76d725)...
+   结果: status=200, OCR区域数=0
+   OCR 第5页 (ed4d1249-6505-490f-9c5c-e2c2fac72e80)...
+   结果: status=200, OCR区域数=0
+   OCR 第6页 (5ed32579-7ed2-4aec-b7ba-0918e5e02085)...
+   结果: status=200, OCR区域数=0
+
+[5] 验证 OCR 结果与坐标...
+
+   --- 第2页 ---
+   页面尺寸: 2390x3400, 区域数: 18
+   P2-空文本: region=981d035a-8988-4915-8d75-c693d5aba1bb
+   P2-空文本: region=2fcb2cc2-91db-4c7c-91bd-f499e0a18820
+   P2-空文本: region=c05f8199-08fa-4053-aa97-551b0a0043e9
+   P2-空文本: region=a5bb4a70-e78e-487f-a4fe-703d453f8f41
+   P2-空文本: region=4d0e8004-5e73-4860-bd4d-a9e43be40072
+   P2-空文本: region=b2c42090-3533-45aa-afd7-855d656d9405
+   P2-空文本: region=d99d4043-5e10-40be-b917-e86ed7321df6
+   P2-空文本: region=a0a47565-b092-43e8-83c0-4ddfcc4634f1
+   P2-空文本: region=7c38b719-7317-4044-bb45-407459ddd7a2
+   P2-空文本: region=bb3b70c9-45e0-4484-baf1-c7bda83154c3
+   P2-空文本: region=bda5c23a-a907-4bb8-b73e-ecd0cf17736a
+   P2-空文本: region=be0573cc-21c5-4f73-b58a-54e11cf8a710
+   P2-空文本: region=08a1831a-9e11-4be5-865f-c0c5c914185a
+   P2-空文本: region=c2ebf197-fb0d-4aa8-a56e-bbeb85115e46
+   P2-空文本: region=fd08f05d-f71e-4c9c-a77a-88e5b6b0db09
+   P2-空文本: region=26ffe849-3713-4744-98d0-11fe060a6247
+   P2-空文本: region=afe9a81d-c26c-44ec-a513-df46f03d9ab9
+   P2-空文本: region=cf2517c4-072a-4c1e-8012-483536b78bf2
+   Region 1: id=981d035a-8988-4915-8d75-c693d5aba1bb, boundary={221,0,974,1248}, text="(空)", conf=0.488
+   Region 2: id=2fcb2cc2-91db-4c7c-91bd-f499e0a18820, boundary={255,0,263,266}, text="(空)", conf=0.95
+   Region 3: id=c05f8199-08fa-4053-aa97-551b0a0043e9, boundary={474,0,557,251}, text="(空)", conf=0.95
+
+   --- 第3页 ---
+   页面尺寸: 2390x3400, 区域数: 21
+   P2-空文本: region=52814c10-f2cc-4127-8fcb-3fcb60690842
+   P2-空文本: region=530a05b3-5c97-4c5f-84a2-2e4dca75075a
+   P2-空文本: region=d331e1a4-2a88-41ab-847c-6f08580db9cb
+   P2-空文本: region=ac3712da-4a8e-474f-b6e5-1699dd5e98ce
+   P2-空文本: region=c22de044-ec8a-4e26-aaf7-9981baeca39a
+   P2-空文本: region=f3e6c330-38bc-4a14-834c-d70a19cab526
+   P2-空文本: region=d7ce99a9-2ea1-43b3-ab57-d3fe9af9e3cb
+   P2-空文本: region=546814c6-5751-4ca7-966b-30a591ce1e92
+   P2-空文本: region=792dce5c-1997-4044-bc35-6030f2728440
+   P2-空文本: region=521c87d5-975c-4a7c-90a1-94a7e5161930
+   P2-空文本: region=fa229bd9-261c-4ead-9edb-4c901d209363
+   P2-空文本: region=28230954-c11b-4373-bc0c-6c0607f0ee3b
+   P2-空文本: region=de540448-4609-468d-8737-f056dcf7e762
+   P2-空文本: region=e8e0f74d-785d-45f5-8873-11f1bd278b2e
+   P2-空文本: region=02aa6c90-b6ed-4cc8-bbb2-d7cedb232155
+   P2-空文本: region=a363b0a0-7258-4e27-ac4a-b8fe47cbe1e5
+   P2-空文本: region=7a4a59d4-c2c7-452f-80e1-ba05ff2b3e9b
+   P2-空文本: region=34ee8474-2a2d-4766-998d-b72ee23c6ab3
+   P2-空文本: region=317b2d6d-9722-43d4-9a88-5153827cf564
+   P2-空文本: region=b3ab1b3a-8924-4679-a7e9-385ba5f707bf
+   P2-空文本: region=77bfa7e0-a4f7-41a8-999d-be6edddfb979
+   Region 1: id=52814c10-f2cc-4127-8fcb-3fcb60690842, boundary={0,0,1195,1150}, text="(空)", conf=0.398
+   Region 2: id=530a05b3-5c97-4c5f-84a2-2e4dca75075a, boundary={669,0,526,128}, text="(空)", conf=0.95
+   Region 3: id=d331e1a4-2a88-41ab-847c-6f08580db9cb, boundary={338,38,188,349}, text="(空)", conf=0.95
+
+   --- 第4页 ---
+   页面尺寸: 2332x3400, 区域数: 28
+   P2-空文本: region=2ad1dc20-aa39-48f6-b267-806216ae4307
+   P2-空文本: region=c0e485f0-5e4c-4f71-b662-0f3abb510665
+   P2-空文本: region=293ec5ec-8eae-4e4e-9b56-41f9dc1df270
+   P2-空文本: region=3453d263-ab8b-4714-b37e-87b93ddcbe6a
+   P2-空文本: region=6a587816-5160-4678-99ed-c1576a3ebe39
+   P2-空文本: region=209c64c9-e590-4d5b-89d4-0b32f15fec53
+   P2-空文本: region=4213b4b9-6aac-4ec8-aaa2-16a09a219f3e
+   P2-空文本: region=89e01fbb-2185-4a1b-9507-a356b0c0e6f4
+   P2-空文本: region=5de2ee69-2346-4e21-a049-0790d47cee53
+   P2-空文本: region=e68b718f-4e6b-48f6-82e9-9f7e295758c9
+   P2-空文本: region=c2bd0497-45d4-40c7-be8a-4c6f83a7cc5e
+   P2-空文本: region=bba66b1e-581a-4257-9a51-1cb60b9ee2fb
+   P2-空文本: region=28abc2ec-0c1a-4ed9-84b8-14f27cf0ae0b
+   P2-空文本: region=20dce298-9e3a-42bb-8a87-1183f8dfc2cf
+   P2-空文本: region=8dd4fcf0-fc42-4643-8729-332fcd97cb5d
+   P2-空文本: region=153a17bf-0c85-439e-882d-383502c71587
+   P2-空文本: region=fcbed6ff-8383-4c9a-a6b6-c18c3a549610
+   P2-空文本: region=a239f780-b432-493b-ba72-c249c2af54ce
+   P2-空文本: region=48453407-824f-4132-b401-ca31288fd307
+   P2-空文本: region=c48e61b7-8e9d-468c-8e65-47310392d59f
+   P2-空文本: region=d4badf0a-1102-4d2e-91f8-b5874c91bb24
+   P2-空文本: region=93ce8b7d-a200-4766-ab31-75ad0e53ac76
+   P2-空文本: region=6aa21596-a126-4cb3-888a-f0e7c85d7207
+   P2-空文本: region=8c2aa4c5-a9b7-44d3-893f-7fe2d50e88f9
+   P2-空文本: region=86047f85-91c9-4b8b-8703-4fdda4a2b28b
+   P2-空文本: region=db63b2c5-7642-4c79-82ab-0395131b2c98
+   P2-空文本: region=96cc5fd3-8373-4f9a-a87c-a17b3db90d43
+   P2-空文本: region=ae94411c-76db-4dbd-a662-0d72bbd22c3e
+   Region 1: id=2ad1dc20-aa39-48f6-b267-806216ae4307, boundary={541,0,625,726}, text="(空)", conf=0.95
+   Region 2: id=c0e485f0-5e4c-4f71-b662-0f3abb510665, boundary={809,44,185,60}, text="(空)", conf=0.95
+   Region 3: id=293ec5ec-8eae-4e4e-9b56-41f9dc1df270, boundary={69,55,714,824}, text="(空)", conf=0.251
+
+   --- 第5页 ---
+   页面尺寸: 2290x3400, 区域数: 21
+   P2-空文本: region=127530bd-84e3-4fd7-b8de-6f9ab0890b65
+   P2-空文本: region=e379f448-2942-40fc-83f1-aac320524d70
+   P2-空文本: region=1a58af21-9e6b-4347-bc12-0b6cbdf43f18
+   P2-空文本: region=23593cf4-3b81-44c9-bbcd-e8bfb7e14da2
+   P2-空文本: region=4443a063-f240-4705-9936-375f2e495d85
+   P2-空文本: region=476c3b86-5498-4dc2-9c7b-0db7b30fcb93
+   P2-空文本: region=98b02364-bc8d-4024-9bcd-da5108b076f1
+   P2-空文本: region=0ea173d9-f7c5-41e1-aaeb-6d5f4a8ea0bd
+   P2-空文本: region=e6329aab-5ee2-4fb9-a7ca-b29650799d9f
+   P2-空文本: region=303522b1-d83b-4771-a79c-8a800d74dbd5
+   P2-空文本: region=7f74ad37-5a7b-449a-b930-643195a0ab53
+   P2-空文本: region=cd26f7a2-cce7-4860-b1d6-073d9252c01a
+   P2-空文本: region=f422f768-6e0f-4cb5-b076-f30491589950
+   P2-空文本: region=cb72631e-8b35-476f-99ff-6ee9494f7387
+   P2-空文本: region=417b3481-dc6f-437d-bf4a-b5bc7b881632
+   P2-空文本: region=064ad77d-98a9-4dd7-b5aa-782fdb6431bb
+   P2-空文本: region=bafb940a-4456-4ebe-b993-14bf0d37f5ed
+   P2-空文本: region=a0c399c2-21d7-4937-b588-9fc423d13f3d
+   P2-空文本: region=86155089-674e-4b16-85cc-a9b26c272a08
+   P2-空文本: region=edee822f-3d97-46e1-ab7a-5a39a46d78e0
+   P2-空文本: region=a298cb1d-b16b-46f6-88ef-fec62b6359af
+   Region 1: id=127530bd-84e3-4fd7-b8de-6f9ab0890b65, boundary={0,0,997,663}, text="(空)", conf=0.95
+   Region 2: id=e379f448-2942-40fc-83f1-aac320524d70, boundary={871,0,274,539}, text="(空)", conf=0.95
+   Region 3: id=1a58af21-9e6b-4347-bc12-0b6cbdf43f18, boundary={408,8,132,94}, text="(空)", conf=0.95
+
+   --- 第6页 ---
+   页面尺寸: 2270x3400, 区域数: 16
+   P2-空文本: region=f86a434a-824a-4d56-8cf0-ffd9ccb14412
+   P2-空文本: region=e3729b7b-d1bc-4d3a-b019-3dad79cb2134
+   P2-空文本: region=1c06d278-98f7-4d4c-b899-22327e620c01
+   P2-空文本: region=8b55a647-537f-4bf9-9217-459ec5aea9eb
+   P2-空文本: region=e3564785-b7ac-4079-bd97-f5fb2fe03911
+   P2-空文本: region=e9911125-2414-4a12-8644-e4f2c6e33b04
+   P2-空文本: region=8d66a846-bf25-4520-a7ae-68548ec84c7b
+   P2-空文本: region=7111f1a7-272e-4761-8ccd-94796629d259
+   P2-空文本: region=4d5c2778-b89b-4c8a-960b-82e224ab75a2
+   P2-空文本: region=665f4cbc-5e6b-4911-8a67-8e6c3f21a8bb
+   P2-空文本: region=18bbf3d3-e724-4334-8c49-049ba3cc6b13
+   P2-空文本: region=f991d43a-1e79-45f9-b0e5-999709950d0b
+   P2-空文本: region=58dab0ba-b016-4bcb-b096-6d82f95472e0
+   P2-空文本: region=39c63b70-ad25-4a7a-b25c-0fa749789722
+   P2-空文本: region=6cf99df3-2cbf-4eb1-ad9b-b5b396ca7e80
+   P2-空文本: region=c15d43ba-3a5a-43d6-904f-8a0f364c43b6
+   Region 1: id=f86a434a-824a-4d56-8cf0-ffd9ccb14412, boundary={233,0,902,996}, text="(空)", conf=0.295
+   Region 2: id=e3729b7b-d1bc-4d3a-b019-3dad79cb2134, boundary={821,30,288,586}, text="(空)", conf=0.95
+   Region 3: id=1c06d278-98f7-4d4c-b899-22327e620c01, boundary={86,319,245,543}, text="(空)", conf=0.252
+
+========== P1+P2 验证汇总 ==========
+第2页: P1=PASS P2=FAIL(18 issues) | 18 regions, 2390x3400
+第3页: P1=PASS P2=FAIL(21 issues) | 21 regions, 2390x3400
+第4页: P1=PASS P2=FAIL(28 issues) | 28 regions, 2332x3400
+第5页: P1=PASS P2=FAIL(21 issues) | 21 regions, 2290x3400
+第6页: P1=PASS P2=FAIL(16 issues) | 16 regions, 2270x3400

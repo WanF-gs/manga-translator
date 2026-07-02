@@ -1,0 +1,18 @@
+{
+  "name": "netease-clone",
+  "leadAgentId": "47b2f2ad19c74dc5b520d512448723c1",
+  "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_03",
+  "createdAt": "2026-06-18T03:19:05.443Z",
+  "options": {
+    "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_03",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@netease-clone",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    }
+  ],
+  "isAutoTeam": false
+}

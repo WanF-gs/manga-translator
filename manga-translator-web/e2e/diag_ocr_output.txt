@@ -1,0 +1,82 @@
+=== BEFORE OCR ===
+Status: 0
+Width: 2390 Height: 3400
+Region count: 18
+First region keys: [
+  'region_id',
+  'type',
+  'boundary',
+  'original_text',
+  'translated_text',
+  'confidence',
+  'is_locked',
+  'style_config',
+  'sort_order'
+]
+First region: {
+  "region_id": "981d035a-8988-4915-8d75-c693d5aba1bb",
+  "type": "speech",
+  "boundary": {
+    "x": 221,
+    "y": 0,
+    "width": 974,
+    "height": 1248
+  },
+  "original_text": "イッ クジ\nイルクム (て\nAS\nに 人 下\nーーュブが // Ni \\  ( /  ( ，\n全 多 人太  中 NA SA",
+  "translated_text": null,
+  "confidence": 0.488,
+  "is_locked": false,
+  "style_config": {
+    "color": "#cfc8cb",
+    "font_size": 36,
+    "font_style": "regular"
+  },
+  "sort_order": 0
+}
+
+=== RUNNING OCR ===
+OCR Status: 200
+OCR Raw Response (first 1000 chars):
+{"code":0,"message":"success","data":{"task_id":"36fa6f91-418d-4277-8040-838f40531e2c","status":"completed","results":[{"region_id":"981d035a-8988-4915-8d75-c693d5aba1bb","text":"イッ クジ\nイルクム (て\nAS\nに 人 下\nーーュブが // Ni \\  ( /  ( ，\n全 多 人太  中 NA SA","confidence":0.488,"font_size":36,"font_style":"regular","color":"#cfc8cb"},{"region_id":"2fcb2cc2-91db-4c7c-91bd-f499e0a18820","text":"","confidence":0.95,"font_size":36,"font_style":"regular","color":"#e4decc"},{"region_id":"c05f8199-08fa-4053-aa97-551b0a0043e9","text":"て4 グンク\n1","confidence":0.95,"font_size":36,"font_style":"regular","color":"#eae1cd"},{"region_id":"a5bb4a70-e78e-487f-a4fe-703d453f8f41","text":"","confidence":0.8,"font_size":36,"font_style":"regular","color":"#e8dfc9"},{"region_id":"4d0e8004-5e73-4860-bd4d-a9e43be40072","text":"","confidence":0.95,"font_size":36,"font_style":"regular","color":"#000000"},{"region_id":"b2c42090-3533-45aa-afd7-855d656d9405","text":"Sa","confidence":0.95,"font_size":36,"font_style":"regular"
+OCR code: 0
+OCR message: success
+OCR data keys: [ 'task_id', 'status', 'results' ]
+OCR full data (first 500): {"task_id":"36fa6f91-418d-4277-8040-838f40531e2c","status":"completed","results":[{"region_id":"981d035a-8988-4915-8d75-c693d5aba1bb","text":"イッ クジ\nイルクム (て\nAS\nに 人 下\nーーュブが // Ni \\  ( /  ( ，\n全 多 人太  中 NA SA","confidence":0.488,"font_size":36,"font_style":"regular","color":"#cfc8cb"},{"region_id":"2fcb2cc2-91db-4c7c-91bd-f499e0a18820","text":"","confidence":0.95,"font_size":36,"font_style":"regular","color":"#e4decc"},{"region_id":"c05f8199-08fa-4053-aa97-551b0a0043e9","text":"て4 グンク\n1","con
+
+=== AFTER OCR ===
+Region count: 18
+First region keys: [
+  'region_id',
+  'type',
+  'boundary',
+  'original_text',
+  'translated_text',
+  'confidence',
+  'is_locked',
+  'style_config',
+  'sort_order'
+]
+First region: {
+  "region_id": "981d035a-8988-4915-8d75-c693d5aba1bb",
+  "type": "speech",
+  "boundary": {
+    "x": 221,
+    "y": 0,
+    "width": 974,
+    "height": 1248
+  },
+  "original_text": "イッ クジ\nイルクム (て\nAS\nに 人 下\nーーュブが // Ni \\  ( /  ( ，\n全 多 人太  中 NA SA",
+  "translated_text": null,
+  "confidence": 0.488,
+  "is_locked": false,
+  "style_config": {
+    "color": "#cfc8cb",
+    "font_size": 36,
+    "font_style": "regular"
+  },
+  "sort_order": 0
+}
+
+=== CHECKING PAGE STATUS ===
+Page status: pending
+OCR result fields: none

@@ -1,0 +1,79 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: manga-translator
+    env: production
+
+scrape_configs:
+  # Go API Gateway
+  - job_name: gateway
+    static_configs:
+      - targets: ["gateway:8080"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Python Microservices
+  - job_name: user-service
+    static_configs:
+      - targets: ["user-service:8001"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: project-service
+    static_configs:
+      - targets: ["project-service:8002"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: translation-service
+    static_configs:
+      - targets: ["translation-service:8003"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: image-service
+    static_configs:
+      - targets: ["image-service:8004"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: export-service
+    static_configs:
+      - targets: ["export-service:8005"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: reader-service
+    static_configs:
+      - targets: ["reader-service:8006"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: notification-service
+    static_configs:
+      - targets: ["notification-service:8007"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: ai-gateway
+    static_configs:
+      - targets: ["ai-gateway:8100"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Redis
+  - job_name: redis
+    static_configs:
+      - targets: ["redis:6379"]
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Prometheus self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+# Alerting rules
+rule_files:
+  - "alerts.yml"

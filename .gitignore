@@ -1,0 +1,75 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.venv
+*.log
+
+# ===== Node / Frontend =====
+node_modules/
+.next/
+out/
+dist/
+.cache/
+*.tsbuildinfo
+next-env.d.ts
+
+# ===== Go =====
+*.exe
+*.test
+*.out
+vendor/
+
+# ===== IDE / Editor =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-*
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===== Env / Secrets =====
+.env
+.env.local
+.env.*.local
+*.secret
+
+# ===== Docker =====
+docker-compose.override.yml
+
+# ===== AI Models =====
+/models/
+*.onnx
+*.ckpt
+*.pt
+
+# ===== Test Data (large files) =====
+/测试项目/
+manga-translator-web/e2e/screenshots_full_test/
+manga-translator-web/e2e/*screenshot*.png
+manga-translator-web/e2e/*diagnosis*.png
+
+# ===== Go Build Artifacts =====
+manga-translator-backend/gateway/gateway_linux
+manga-translator-backend/gateway/gateway.exe
+
+# ===== Misc =====
+*.tmp
+*.temp
+*.bak

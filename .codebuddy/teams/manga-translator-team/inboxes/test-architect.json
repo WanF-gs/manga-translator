@@ -1,0 +1,20 @@
+[
+  {
+    "id": "shutdown-1782458605102",
+    "from": "test-case-auditor",
+    "to": "test-architect",
+    "type": "shutdown_request",
+    "content": "{\"type\":\"shutdown_request\",\"request_id\":\"shutdown-1782458605102\",\"reason\":\"Phase-0 任务已完成，请确认关闭。\",\"from\":\"test-case-auditor\",\"timestamp\":\"2026-06-26T07:23:25.102Z\"}",
+    "timestamp": "2026-06-26T07:23:25.102Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782458639014-dswljb",
+    "from": "team-lead",
+    "to": "test-architect",
+    "type": "message",
+    "content": "【项目总监状态查询】Phase-0 其他 4 份交付物已全部到位并验收通过：\n- boundary-audit-report.md ✅\n- compliance-audit-report.md ✅\n- prd-compliance-mapping.md ✅\n- test-case-audit-report.md ✅\n\n你的测试用例集交付物尚未提交。请报告当前进度：\n1. 是否还在执行中？预估完成时间？\n2. 如已完成，请立即提交交付物并更新 Neon 数据库状态。\n\n如遇到阻塞，请说明需要的上下文信息。",
+    "timestamp": "2026-06-26T07:23:59.014Z",
+    "read": false
+  }
+]

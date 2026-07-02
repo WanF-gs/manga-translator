@@ -1,0 +1,29 @@
+[
+  {
+    "id": "shutdown-1782458584378",
+    "from": "team-lead",
+    "to": "boundary-auditor",
+    "type": "shutdown_request",
+    "content": "{\"type\":\"shutdown_request\",\"request_id\":\"shutdown-1782458584378\",\"reason\":\"✅ 边界审计报告验收通过 — 交付物完整，问题标注精确到文件行号，PRD边界对照全面。任务完成，请确认关闭。\",\"from\":\"team-lead\",\"timestamp\":\"2026-06-26T07:23:04.378Z\"}",
+    "timestamp": "2026-06-26T07:23:04.378Z",
+    "read": true
+  },
+  {
+    "id": "shutdown-1782458603562",
+    "from": "test-case-auditor",
+    "to": "boundary-auditor",
+    "type": "shutdown_request",
+    "content": "{\"type\":\"shutdown_request\",\"request_id\":\"shutdown-1782458603562\",\"reason\":\"Phase-0 任务已完成，请确认关闭。\",\"from\":\"test-case-auditor\",\"timestamp\":\"2026-06-26T07:23:23.562Z\"}",
+    "timestamp": "2026-06-26T07:23:23.562Z",
+    "read": false
+  },
+  {
+    "id": "nudge-1782458633585-938gu6",
+    "from": "team-lead",
+    "to": "boundary-auditor",
+    "type": "message",
+    "content": "Reminder: a previous shutdown_request (request_id=shutdown-1782458603562) is still awaiting your response.\nPer the Shutdown Protocol, you MUST reply now with:\n  send_message(type='shutdown_response', approve=true, request_id='shutdown-1782458603562')\nIf you have unreported deliverables, send them via send_message first, then acknowledge.\nForce termination will occur shortly if no response is received.",
+    "timestamp": "2026-06-26T07:23:53.585Z",
+    "read": false
+  }
+]

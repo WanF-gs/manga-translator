@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-1782398169770-cktibg",
+    "from": "team-lead",
+    "to": "prd-compliance-specialist",
+    "type": "message",
+    "content": "进度查询：PRD合规专员，你的《PRD-场景-测试用例映射总表》是否已完成？请将输出保存到 `e2e/prd_test_mapping.json` 并回报进度。项目监管员报告已出，后端API全部38个端点实现完成，但测试质量堪忧（伪测试）。前端5个页面未集成React Query。请基于监管报告更新映射表，确保覆盖所有P0/P1功能。",
+    "timestamp": "2026-06-25T14:36:09.770Z",
+    "read": true
+  }
+]

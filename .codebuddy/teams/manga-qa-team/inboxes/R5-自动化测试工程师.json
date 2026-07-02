@@ -1,0 +1,38 @@
+[
+  {
+    "id": "msg-1782441030133-f9fe5a",
+    "from": "team-lead",
+    "to": "R5-自动化测试工程师",
+    "type": "message",
+    "content": "## Phase 1 第1轮回归验证任务\n\n所有6个P0修复均已提交并通过代码审查(R14有条件通过)：\n\n| 修复 | 负责 | 状态 | 变更要点 |\n|------|------|------|---------|\n| P0-FIX-01 AI Gateway 500 | R9 | ✅ | multipart form data支持，base64管道 |\n| P0-FIX-02 上传端点404 | R8 | ✅ | Gin radix-tree显式路由 + pages别名 |\n| P0-FIX-03 校对工作台404 | R8 | ✅ | review显式路由 + 异常处理 |\n| P0-FIX-04 预设创建500 | R8 | ✅ | ORM基类修复(updated_at列冲突) |\n| P0-FIX-05 偏好设置422 | R8 | ✅ | model_validator扁平格式兼容 |\n| P0-FIX-06 pytest-asyncio | R4 | ✅ | pytest.ini + 移除event_loop冲突 |\n\n### 你的任务：回归验证\n\n1. **重启所有服务**：\n   ```\n   docker compose -f manga-translator-backend/docker-compose.yml up -d --force-recreate\n   ```\n   或单独重启变更的容器：ai_gateway、gateway、project-service、user-service\n\n2. **运行冒烟测试**（验证3个关键P0阻塞是否解除）：\n   - POST /detector/detect (multipart file) → 应返回200\n   - POST /ocr/recognize (multipart file) → 应返回200  \n   - POST /inpaint/inpaint (multipart file) → 应返回200\n   - POST /api/v1/chapters/{cid}/pages/upload → 应返回200\n   - GET /api/v1/projects/{pid}/review/regions → 应返回200\n   - POST /api/v1/presets → 应返回201\n   - PUT /api/v1/user/settings (扁平格式) → 应返回200\n\n3. **运行全量Round 0回归**：\n   ```\n   python e2e/round0_baseline_test.py\n   ```\n   上次通过率69.8%，本次目标 ≥90%\n\n4. **运行R4三层测试**：\n   ```\n   python -m tests.run_all --layer smoke\n   ```\n   验证pytest-asyncio修复生效（0 SKIP）\n\n5. **生成回归测试报告** → `reports/round1_regression_report.md`\n\n### 验收标准\n- 冒烟通过率 ≥90%\n- E2E通过率 ≥90%\n- 3个P0阻塞Bug全部解除\n- 0 UnicodeDecodeError in Docker logs\n",
+    "timestamp": "2026-06-26T02:30:30.133Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782441707201-527ouv",
+    "from": "team-lead",
+    "to": "R5-自动化测试工程师",
+    "type": "message",
+    "content": "## Round 2 回归验证任务\n\nR8已完成Round 1回归发现的3个Bug修复：\n\n| 修复 | 变更 | 预期 |\n|------|------|------|\n| P0-FIX-03 ORM属性 | `page_number` → `sort_order` (review.py 5处) | 不再AttributeError |\n| Characters 404 | project-service新增characters代理路由到translation-service | 200 |\n| Platform keys 404 | Gateway + user-service添加`/platform/keys`路由 | 200 |\n\ntest_utils.py已同步修复：上传参数名`file`→`files`\n\n### 执行步骤\n1. 重启变更容器：\n```\ndocker restart manga-translator-gateway-1 manga-translator-project-service-1 manga-translator-user-service-1\n```\n\n2. 验证3个修复点：\n   - `GET /api/v1/projects/:pid/review/regions` → 200\n   - `GET /api/v1/projects/:pid/characters` → 200\n   - `GET /api/v1/platform/keys` → 200\n   - `POST /api/v1/chapters/:cid/pages/upload` → 201 (参数名修复后)\n\n3. 运行全量回归：\n```\npython e2e/round0_baseline_test.py\n```\n\n4. 运行R4三层测试冒烟：\n```\npython -m tests.run_all --layer smoke\n```\n\n### 目标\n- 冒烟通过率 ≥90%\n- E2E通过率 ≥90%\n- 3个P0阻塞全部解除\n\n生成 `reports/round2_regression_report.md`\n",
+    "timestamp": "2026-06-26T02:41:47.201Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782442141903-q0vpt9",
+    "from": "team-lead",
+    "to": "R5-自动化测试工程师",
+    "type": "message",
+    "content": "## Round 3 回归验证任务\n\nP0-FIX-03最后一处遗漏已修复：`review.py` L117 `original_image_url`→`original_url`。`audio_dynamic.py`不存在于该目录，无需修改。\n\n### 执行\n1. 重启project-service：\n```\ndocker restart manga-translator-project-service-1\n```\n\n2. 验证：\n- `GET /api/v1/projects/:pid/review/regions` → 正常业务响应（非AttributeError）\n\n3. 运行全量回归：\n```\npython e2e/round0_baseline_test.py\n```\n\n4. 生成 `reports/round3_regression_report.md`\n\n### 预期\n- 通过率约87.9% (29/33)\n- 3个P0阻塞全部解除\n",
+    "timestamp": "2026-06-26T02:49:01.903Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782443243932-kgnnm7",
+    "from": "team-lead",
+    "to": "R5-自动化测试工程师",
+    "type": "message",
+    "content": "## Phase 2 任务：P1回归测试执行器更新\n\nR8(后端)和R15/R16/R17(前端)正在执行P1修复。R4正在更新测试用例。你需要：\n\n### 任务\n1. **更新 `tests/run_all.py`** — 新增P1回归测试模式：\n   - `--layer all --priority p1` → 只运行P1标记的测试\n   - `--layer unit --priority p1` → P1单元测试\n   - `--layer e2e --priority p1` → P1 E2E场景\n\n2. **更新 `e2e/round0_baseline_test.py`** → 升级为 `e2e/round1_p1_baseline_test.py`：\n   - 继承Round 3的33项全通过基线\n   - 新增P1端点的验证用例（等R4/R8完成后）\n   - review endpoints、presets PUT/DELETE、fonts/:fid、auth/refresh、export完整参数\n\n3. **自动回归触发器**：修改 `run_all.py` 实现：\n   - 后端文件变更时自动触发 `--layer smoke`\n   - 前端文件变更时自动触发 `--layer e2e`\n   - 输出简洁的 pass/fail 汇总\n\n完成后向main汇报。\n",
+    "timestamp": "2026-06-26T03:07:23.932Z",
+    "read": true
+  }
+]

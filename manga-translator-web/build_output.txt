@@ -1,0 +1,470 @@
+﻿  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+./src/app/(auth)/login/page.tsx
+101:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/(auth)/register/page.tsx
+142:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/m/me/page.tsx
+7:3  Warning: 'User' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Warning: 'Check' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Warning: 'X' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+209:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+215:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+215:63  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/m/page.tsx
+3:17  Warning: 'useState' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Warning: 'Wifi' is defined but never used.  @typescript-eslint/no-unused-vars
+21:10  Warning: 'useQueryState' is defined but never used.  @typescript-eslint/no-unused-vars
+29:7  Warning: 'LANG_FLAGS' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+94:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+148:15  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+180:62  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+207:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/m/projects/page.tsx
+7:3  Warning: 'Plus' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Warning: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Warning: 'CheckCircle2' is defined but never used.  @typescript-eslint/no-unused-vars
+13:3  Warning: 'Play' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Warning: 'Monitor' is defined but never used.  @typescript-eslint/no-unused-vars
+63:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+65:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+95:84  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+103:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+111:9  Warning: 'handleOpenDelete' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+123:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+170:13  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+
+./src/app/m/projects/[id]/edit/page.tsx
+23:17  Warning: 'allPages' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+23:43  Warning: 'pagesLoading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+44:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+64:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+66:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+76:6  Warning: React Hook React.useEffect has missing dependencies: 'currentPageId' and 'loadPageData'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+178:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/m/quick-translate/page.tsx
+4:45  Warning: 'Spin' is defined but never used.  @typescript-eslint/no-unused-vars
+8:13  Warning: 'UploadIcon' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Warning: 'Image' is defined but never used.  @typescript-eslint/no-unused-vars
+21:10  Warning: 'exportApi' is defined but never used.  @typescript-eslint/no-unused-vars
+74:47  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+74:92  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+78:47  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+78:92  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+85:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+85:86  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+88:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+103:77  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+113:25  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+127:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+142:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+237:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+258:25  Warning: 'hide' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+262:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+262:121  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+263:57  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+267:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/m/reader/[id]/page.tsx
+10:3  Warning: 'MessageCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Warning: 'ChevronUp' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Warning: 'Maximize2' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Warning: 'RotateCw' is defined but never used.  @typescript-eslint/no-unused-vars
+145:92  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+146:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+171:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+309:23  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+335:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+338:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+339:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/pc/page.tsx
+12:3  Warning: 'MoreVertical' is defined but never used.  @typescript-eslint/no-unused-vars
+82:3  Warning: 'onToggleFavorite' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+100:13  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+186:10  Warning: 'currentFileIndex' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+236:6  Warning: React Hook useCallback has missing dependencies: 'message' and 'validateFile'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+284:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+292:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+334:25  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+355:25  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+380:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+684:64  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+800:17  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+
+./src/app/pc/projects/[id]/page.tsx
+24:10  Warning: 'pageApi' is defined but never used.  @typescript-eslint/no-unused-vars
+25:27  Warning: 'StyleConfig' is defined but never used.  @typescript-eslint/no-unused-vars
+40:17  Warning: 'setMode' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+42:37  Warning: 'setActiveStep' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+42:66  Warning: 'setProcessing' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+62:7  Warning: Unexpected console statement.  no-console
+97:54  Warning: 'ALL_STEPS' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+99:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+102:23  Warning: 'url' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+148:59  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+151:56  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+167:171  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+167:246  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+168:150  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+168:232  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+169:147  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+169:221  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+170:149  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+170:231  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+234:41  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+274:52  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+327:41  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+348:48  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+370:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/pc/reader/[id]/page.tsx
+34:6  Warning: React Hook useMemo has a missing dependency: 'reader'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+111:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+120:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+139:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/pc/settings/page.tsx
+5:10  Warning: 'Form' is defined but never used.  @typescript-eslint/no-unused-vars
+5:54  Warning: 'Divider' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Warning: 'Palette' is defined but never used.  @typescript-eslint/no-unused-vars
+125:12  Warning: 'settingsError' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+126:14  Warning: 'refetchSettings' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+133:76  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+170:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+181:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+197:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/pc/trash/page.tsx
+4:18  Warning: 'Modal' is defined but never used.  @typescript-eslint/no-unused-vars
+4:59  Warning: 'Tooltip' is defined but never used.  @typescript-eslint/no-unused-vars
+50:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+52:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+73:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+90:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+136:20  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+166:21  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+
+./src/app/providers.tsx
+3:28  Warning: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/common/ContinueOnPC.tsx
+3:40  Warning: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+5:19  Warning: 'Smartphone' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/common/FileDropZone.tsx
+4:10  Warning: 'Upload' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/common/ImageUploader.tsx
+4:18  Warning: 'Progress' is defined but never used.  @typescript-eslint/no-unused-vars
+5:18  Warning: 'Image' is defined but never used.  @typescript-eslint/no-unused-vars
+126:25  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+137:5  Warning: React Hook useCallback has a missing dependency: 'updateImageProgress'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+309:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/common/NotificationBell.tsx
+61:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+100:11  Warning: Unexpected console statement.  no-console
+116:11  Warning: Unexpected console statement.  no-console
+175:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+296:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+300:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/common/ProgressiveImage.tsx
+89:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/editor/BatchProgressModal.tsx
+3:27  Warning: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+4:44  Warning: 'Tooltip' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Warning: 'Download' is defined but never used.  @typescript-eslint/no-unused-vars
+15:12  Warning: 'ImageIcon' is defined but never used.  @typescript-eslint/no-unused-vars
+120:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+132:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+171:3  Warning: 'projectId' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+211:61  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+223:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+234:50  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+248:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+261:54  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+307:6  Warning: React Hook useCallback has a missing dependency: 'sourceLang'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+327:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/editor/BrushTool.tsx
+40:3  Warning: 'containerRef' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/components/editor/Canvas.tsx
+87:9  Warning: Unexpected console statement.  no-console
+89:9  Warning: Unexpected console statement.  no-console
+200:9  Warning: 'fitScale' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+301:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+302:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+309:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+326:55  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+339:21  Warning: Unexpected console statement.  no-console
+
+./src/components/editor/ExportPanel.tsx
+4:60  Warning: 'Modal' is defined but never used.  @typescript-eslint/no-unused-vars
+70:10  Warning: 'taskId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+150:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+179:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/editor/ImportPreprocess.tsx
+4:18  Warning: 'Progress' is defined but never used.  @typescript-eslint/no-unused-vars
+4:36  Warning: 'message' is defined but never used.  @typescript-eslint/no-unused-vars
+130:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+132:21  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+
+./src/components/editor/OcrReviewPanel.tsx
+19:3  Warning: 'RotateCcw' is defined but never used.  @typescript-eslint/no-unused-vars
+81:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+133:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+135:40  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+150:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+160:5  Warning: React Hook useCallback has a missing dependency: 'sourceLang'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/editor/PropertyPanel.tsx
+15:3  Warning: 'X' is defined but never used.  @typescript-eslint/no-unused-vars
+21:28  Warning: 'OnomatopoeiaMode' is defined but never used.  @typescript-eslint/no-unused-vars
+21:46  Warning: 'CultureStrategy' is defined but never used.  @typescript-eslint/no-unused-vars
+83:6  Warning: React Hook useEffect has a missing dependency: 'region'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+167:61  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+174:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+298:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+311:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+314:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+316:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+316:71  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+532:48  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+534:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/editor/RegionOverlay.tsx
+299:7  Warning: Unexpected console statement.  no-console
+
+./src/components/editor/Sidebar.tsx
+5:48  Warning: 'CheckCircle2' is defined but never used.  @typescript-eslint/no-unused-vars
+5:62  Warning: 'Loader2' is defined but never used.  @typescript-eslint/no-unused-vars
+5:71  Warning: 'AlertCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+5:84  Warning: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+29:9  Warning: 'statusConfig' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+66:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/editor/StylePanel.tsx
+6:3  Warning: 'Paintbrush' is defined but never used.  @typescript-eslint/no-unused-vars
+92:56  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+179:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+182:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/editor/StyleToggle.tsx
+4:35  Warning: 'Switch' is defined but never used.  @typescript-eslint/no-unused-vars
+20:10  Warning: 'confirmOpen' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+20:23  Warning: 'setConfirmOpen' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/editor/Toolbar.tsx
+15:3  Warning: 'HelpCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+169:13  Warning: Unexpected console statement.  no-console
+
+./src/components/editor/TranslationMemoryBadge.tsx
+4:44  Warning: 'Copy' is defined but never used.  @typescript-eslint/no-unused-vars
+4:50  Warning: 'Check' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/editor/types.ts
+5:52  Warning: 'RegionBoundary' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/layout/PcLayout.tsx
+7:3  Warning: 'Layout' is defined but never used.  @typescript-eslint/no-unused-vars
+8:3  Warning: 'BookOpen' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Warning: 'Upload' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/reader/PageRenderer.tsx
+113:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/settings/TermsPanel.tsx
+123:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+136:5  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+150:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+162:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/hooks/useAIPipeline.ts
+26:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+51:52  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+79:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+85:23  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+91:50  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+102:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+107:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+107:64  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+108:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+118:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+118:64  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+119:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+128:5  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+138:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+151:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+163:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+181:6  Warning: React Hook useCallback has missing dependencies: 'ALL_STEPS' and 'message'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+187:53  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+192:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+203:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+209:23  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+220:5  Warning: React Hook useCallback has missing dependencies: 'ALL_STEPS' and 'message'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/hooks/useApiQueries.ts
+60:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+79:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+108:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+124:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+138:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+171:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+184:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+202:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+203:68  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+221:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/hooks/useExportHistory.ts
+4:10  Warning: 'exportApi' is defined but never used.  @typescript-eslint/no-unused-vars
+5:15  Warning: 'ExportTaskStatus' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/hooks/useNetworkStatus.ts
+7:31  Warning: 'useCallback' is defined but never used.  @typescript-eslint/no-unused-vars
+24:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+55:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/hooks/useProjectData.ts
+17:3  Warning: 'usePages' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Warning: 'usePageDetail' is defined but never used.  @typescript-eslint/no-unused-vars
+22:15  Warning: 'ProjectData' is defined but never used.  @typescript-eslint/no-unused-vars
+22:28  Warning: 'ChapterData' is defined but never used.  @typescript-eslint/no-unused-vars
+42:9  Warning: The 'chapters' logical expression could make the dependencies of useEffect Hook (at line 103) change on every render. Move it inside the useEffect callback. Alternatively, wrap the initialization of 'chapters' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+69:68  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+70:23  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+120:51  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+120:68  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+132:5  Warning: Unexpected console statement.  no-console
+135:52  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+168:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+172:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+221:41  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+225:25  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+267:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/hooks/useQueryState.ts
+8:54  Warning: 'UseQueryOptions' is defined but never used.  @typescript-eslint/no-unused-vars
+54:119  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+57:5  Warning: React Hook useMemo has a missing dependency: 'query'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+72:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+72:66  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/hooks/useReadingState.tsx
+134:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+135:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+145:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+164:6  Warning: React Hook useEffect has a missing dependency: 'isAuthenticated'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+198:6  Warning: React Hook useEffect has a missing dependency: 'pages'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+243:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+252:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+268:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+272:63  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+273:64  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+289:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+302:5  Warning: React Hook useCallback has missing dependencies: 'message' and 'pollExportProgress'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+346:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+389:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+400:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+401:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+406:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+415:6  Warning: React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/hooks/useRegionOperations.ts
+160:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/hooks/useTrafficOptimization.ts
+3:44  Warning: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+40:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+40:65  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+40:101  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+66:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+66:65  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+66:101  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/hooks/useWebSocket.ts
+7:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+79:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/middleware.ts
+1:1  Warning: Imports "NextRequest" are only used as type.  @typescript-eslint/consistent-type-imports
+
+./src/services/request.ts
+6:1  Warning: Imports "AxiosError", "InternalAxiosRequestConfig" and "AxiosResponse" are only used as type.  @typescript-eslint/consistent-type-imports
+9:15  Warning: 'ApiResponse' is defined but never used.  @typescript-eslint/no-unused-vars
+232:15  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+243:55  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+318:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/stores/authStore.ts
+97:34  Warning: '_ignored' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+97:55  Warning: '_ignored2' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/stores/editorStore.ts
+72:57  Warning: 'get' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/utils/coords.ts
+75:56  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+80:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+81:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+82:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+83:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+88:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+89:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+90:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+91:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+102:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+152:45  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/13) ...
+   Generating static pages (3/13) 
+   Generating static pages (6/13) 
+   Generating static pages (9/13) 
+ ✓ Generating static pages (13/13)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /_not-found                          880 B          88.8 kB
+├ ○ /login                               2.35 kB         129 kB
+├ ○ /m                                   5.91 kB         170 kB
+├ ○ /m/me                                10.3 kB         203 kB
+├ ○ /m/projects                          7.53 kB         257 kB
+├ ƒ /m/projects/[id]/edit                36.7 kB         284 kB
+├ ○ /m/quick-translate                   18.1 kB         247 kB
+├ ƒ /m/reader/[id]                       8.84 kB         286 kB
+├ ○ /pc                                  24.1 kB         326 kB
+├ ƒ /pc/projects/[id]                    48.1 kB         322 kB
+├ ƒ /pc/reader/[id]                      17.5 kB         322 kB
+├ ○ /pc/settings                         7.05 kB         294 kB
+├ ○ /pc/trash                            9.4 kB          227 kB
+└ ○ /register                            3.27 kB         130 kB
++ First Load JS shared by all            87.9 kB
+  ├ chunks/2117-ab8a2e9771196d23.js      31.9 kB
+  ├ chunks/fd9d1056-575ca86a4b964937.js  53.6 kB
+  └ other shared chunks (total)          2.33 kB
+
+
+ƒ Middleware                             26.7 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

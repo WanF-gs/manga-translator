@@ -1,0 +1,75 @@
+groups:
+  - name: manga-translator-alerts
+    interval: 30s
+    rules:
+      # API error rate alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (handler)
+            /
+            sum(rate(http_requests_total[5m])) by (handler)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: api
+        annotations:
+          summary: "API error rate > 5% on {{ $labels.handler }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on endpoint {{ $labels.handler }} (last 5 min)"
+
+      # Celery queue backlog alert
+      - alert: CeleryQueueBacklog
+        expr: celery_queue_length > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: task-queue
+        annotations:
+          summary: "Celery queue backlog > 100 on {{ $labels.queue_name }}"
+          description: "Queue '{{ $labels.queue_name }}' has {{ $value }} pending tasks"
+
+      # AI Gateway high latency
+      - alert: AIGatewayHighLatency
+        expr: histogram_quantile(0.99, rate(ai_gateway_latency_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          category: ai
+        annotations:
+          summary: "AI Gateway P99 latency > 30s on {{ $labels.endpoint }}"
+          description: "{{ $labels.endpoint }} ({{ $labels.method }}) P99 latency is {{ $value }}s"
+
+      # Service down alert
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been unreachable for more than 2 minutes"
+
+      # Disk usage alert
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.20
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Disk usage > 80% on {{ $labels.instance }}"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+      # Content safety high reject rate
+      - alert: HighContentRejectRate
+        expr: |
+          rate(content_safety_requests_total{result="rejected"}[15m]) > 10
+        for: 5m
+        labels:
+          severity: info
+          category: safety
+        annotations:
+          summary: "High content rejection rate detected"
+          description: "{{ $value }} content items rejected in the last 15 minutes"

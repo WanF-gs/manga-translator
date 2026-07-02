@@ -1,0 +1,20 @@
+[
+  {
+    "id": "msg-1782440386289-xkgtov",
+    "from": "team-lead",
+    "to": "R4-测试架构专家",
+    "type": "message",
+    "content": "## P0-FIX-06：修复pytest-asyncio fixture兼容性 (1h)\n\nR13项目总监排定的第1轮任务中，P0-FIX-06分配给你。当前46条PRD验收单元测试因pytest-asyncio兼容性问题全部SKIP。\n\n请执行：\n1. 检查 `tests/unit/` 目录下测试文件的 asyncio fixture 用法\n2. 检查 `pytest.ini` / `setup.cfg` / `pyproject.toml` 或 `conftest.py` 中的 pytest 配置\n3. 修复兼容性问题（常见原因：缺少 `pytest-asyncio` 包、fixture loop scope不匹配、事件循环冲突）\n4. 验证修复：运行 `python -m pytest tests/unit/ -v --tb=short` 确认测试可以执行\n5. 告知main修复结果和变更文件",
+    "timestamp": "2026-06-26T02:19:46.289Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782443235833-q8biqt",
+    "from": "team-lead",
+    "to": "R4-测试架构专家",
+    "type": "message",
+    "content": "## Phase 2 测试任务：P1回归测试准备\n\n### 任务：更新三层测试，覆盖P1修复验证\n\n当前R15/R16/R17(前端)和R8(后端)正在执行P1修复。你需要：\n\n1. **更新冒烟测试** (`tests/smoke/test_smoke_p0.py`)：\n   - 新增P1端点冒烟：review/regions PUT、review/comments、review/log、presets PUT/DELETE、fonts/:fid、auth/refresh\n   - 标记为 `@pytest.mark.p1`\n\n2. **更新单元测试** (`tests/unit/test_api_endpoints.py`)：\n   - 新增P1 API测试用例：\n     - review/regions PUT — 校对修改\n     - review/regions POST lock — 区域锁定\n     - review/comments POST — 校对评论\n     - presets PUT/DELETE\n     - fonts/:fid GET\n     - export POST — 完整参数\n     - auth/refresh POST\n\n3. **更新E2E测试** (`tests/e2e/test_prd_scenarios.py`)：\n   - 场景5（汉化组协作翻译）补充：\n     - 锁定/解锁文字区域\n     - 修改翻译文本后验证\n     - 添加校对评论\n     - 查看变更日志\n\n4. **更新PRD映射表** (`reports/PRD_case_mapping_master.md`)：\n   - 新增P1测试用例对应的映射记录\n\n完成后向main汇报新增用例数量和覆盖情况。\n",
+    "timestamp": "2026-06-26T03:07:15.833Z",
+    "read": true
+  }
+]

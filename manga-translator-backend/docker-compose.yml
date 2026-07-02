@@ -1,0 +1,490 @@
+version: "3.9"
+
+# ============================================
+# 漫画多语言智能翻译系统 - Docker Compose
+# ============================================
+
+services:
+  # ---- 基础设施 ----
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: manga-postgres
+    environment:
+      POSTGRES_DB: manga_translator
+      POSTGRES_USER: manga_user
+      POSTGRES_PASSWORD: manga_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/ddl:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manga_user -d manga_translator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - manga-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: manga-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - manga-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: manga-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - manga-net
+
+  # ---- API 网关 ----
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: manga-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: "8080"
+      SERVER_READ_TIMEOUT: "300s"
+      SERVER_WRITE_TIMEOUT: "300s"
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      RATE_LIMIT_USER_RPS: "10.0"
+      RATE_LIMIT_USER_BURST: "30"
+      RATE_LIMIT_IP_RPS: "20.0"
+      RATE_LIMIT_IP_BURST: "50"
+      MAX_UPLOAD_SIZE_MB: "500"
+      USER_SERVICE_URL: "http://user-service:8001"
+      PROJECT_SERVICE_URL: "http://project-service:8002"
+      TRANSLATION_SERVICE_URL: "http://translation-service:8003"
+      IMAGE_SERVICE_URL: "http://image-service:8004"
+      EXPORT_SERVICE_URL: "http://export-service:8005"
+      READER_SERVICE_URL: "http://reader-service:8006"
+      AI_GATEWAY_URL: "http://ai-gateway:8100"
+      NOTIFICATION_SERVICE_URL: "http://notification-service:8007"
+    depends_on:
+      - user-service
+      - project-service
+      - translation-service
+      - image-service
+      - export-service
+      - reader-service
+      - ai-gateway
+      - notification-service
+    networks:
+      - manga-net
+
+  # ---- 微服务 ----
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user_service/Dockerfile
+    container_name: manga-user-service
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./services/user_service:/app/service
+      - ./services/common:/app/common
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8001 --reload
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      JWT_ACCESS_TOKEN_EXPIRE: "7200"
+      JWT_REFRESH_TOKEN_EXPIRE: "604800"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  project-service:
+    build:
+      context: .
+      dockerfile: services/project_service/Dockerfile
+    container_name: manga-project-service
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./services/project_service:/app/service
+      - ./services/common:/app/common
+      - project_uploads:/tmp/manga-storage
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8002 --reload
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET: "manga-translator"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  translation-service:
+    build:
+      context: .
+      dockerfile: services/translation_service/Dockerfile
+    container_name: manga-translation-service
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./services/translation_service:/app/service
+      - ./services/common:/app/common
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8003
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 223.5.5.5
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      AI_SERVICE_BASE_URL: "http://ai-gateway:8100"
+      TENCENT_SECRET_ID: "${TENCENT_SECRET_ID:-}"
+      TENCENT_SECRET_KEY: "${TENCENT_SECRET_KEY:-}"
+      TENCENT_TMT_REGION: "${TENCENT_TMT_REGION:-ap-guangzhou}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  image-service:
+    build:
+      context: .
+      dockerfile: services/image_service/Dockerfile
+    container_name: manga-image-service
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./services/image_service:/app/service
+      - ./services/common:/app/common
+      - ./fonts:/app/fonts:ro
+      - project_uploads:/tmp/manga-storage
+      - image_uploads:/app/uploads
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8004 --reload
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET: "manga-translator"
+      FONT_DIR: "/app/fonts"
+      AI_SERVICE_BASE_URL: "http://ai-gateway:8100"
+      # Content Safety (PRD v3.0 P1)
+      CONTENT_SAFETY_PROVIDER: "${CONTENT_SAFETY_PROVIDER:-none}"
+      CONTENT_SAFETY_TENCENT_SECRET_ID: "${CONTENT_SAFETY_TENCENT_SECRET_ID:-}"
+      CONTENT_SAFETY_TENCENT_SECRET_KEY: "${CONTENT_SAFETY_TENCENT_SECRET_KEY:-}"
+      CONTENT_SAFETY_REGION: "${CONTENT_SAFETY_REGION:-ap-guangzhou}"
+      # GPU Computing (set to true if NVIDIA GPU available)
+      GPU_ENABLED: "${GPU_ENABLED:-false}"
+      CUDA_VISIBLE_DEVICES: "${CUDA_VISIBLE_DEVICES:-}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  export-service:
+    build:
+      context: .
+      dockerfile: services/export_service/Dockerfile
+    container_name: manga-export-service
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./services/export_service:/app/service
+      - ./services/common:/app/common
+      - project_uploads:/tmp/manga-storage
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8005 --reload
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET: "manga-translator"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  reader-service:
+    build:
+      context: .
+      dockerfile: services/reader_service/Dockerfile
+    container_name: manga-reader-service
+    ports:
+      - "8006:8006"
+    volumes:
+      - ./services/reader_service:/app/service
+      - ./services/common:/app/common
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8006 --reload
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  # ---- AI 模型网关 (端口 8100) ---- v3.0 GPU Ready
+  ai-gateway:
+    build:
+      context: .
+      dockerfile: services/ai_gateway/Dockerfile
+    container_name: manga-ai-gateway
+    ports:
+      - "8100:8100"
+    volumes:
+      - ./services/ai_gateway:/app/service
+      - ./services/common:/app/common
+      - ./services/translation_service:/app/translation_service
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8100 --reload
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET: "manga-translator"
+      # GPU Computing (PRD v3.0 P0)
+      GPU_ENABLED: "${GPU_ENABLED:-false}"
+      CUDA_VISIBLE_DEVICES: "${CUDA_VISIBLE_DEVICES:-}"
+    # Uncomment for GPU passthrough:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ---- 通知服务 (端口 8007) ----
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification_service/Dockerfile
+    container_name: manga-notification-service
+    ports:
+      - "8007:8007"
+    volumes:
+      - ./services/notification_service:/app/service
+      - ./services/common:/app/common
+    command: uvicorn service.main:app --host 0.0.0.0 --port 8007 --reload
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      SMTP_HOST: "smtp.example.com"
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM: "noreply@manga-translator.local"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ---- Celery Worker ----
+  celery-worker:
+    build:
+      context: .
+      dockerfile: services/image_service/Dockerfile
+    container_name: manga-celery-worker
+    volumes:
+      - ./services/image_service:/app/service
+      - ./services/common:/app/common
+      - project_uploads:/tmp/manga-storage
+      - image_uploads:/app/uploads
+    command: celery -A common.tasks.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://manga_user:manga_pass@postgres:5432/manga_translator"
+      REDIS_URL: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "redis://redis:6379/1"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/2"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-manga-jwt-dev-change-me}"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET: "manga-translator"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  # ---- 可观测性栈 (Prometheus + Grafana + Loki) ---- #
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: manga-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    container_name: manga-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: manga-promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/promtail/promtail-config.yaml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: manga-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: ""
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards/json
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - manga-net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  project_uploads:
+  image_uploads:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+
+networks:
+  manga-net:
+    driver: bridge

@@ -1,0 +1,88 @@
+{
+  "name": "manga-qa-team",
+  "leadAgentId": "a8cf43abdd304ab9a3bb9992e353295e",
+  "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+  "createdAt": "2026-06-26T02:03:44.267Z",
+  "options": {
+    "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@manga-qa-team",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    },
+    {
+      "memberId": "R1-PRD合规官@manga-qa-team",
+      "name": "R1-PRD合规官",
+      "role": "R1-PRD首席合规官"
+    },
+    {
+      "memberId": "R2-边界审计师@manga-qa-team",
+      "name": "R2-边界审计师",
+      "role": "R2-业务边界审计师"
+    },
+    {
+      "memberId": "R3-数据合规专家@manga-qa-team",
+      "name": "R3-数据合规专家",
+      "role": "R3-数据与合规专家"
+    },
+    {
+      "memberId": "R4-测试架构专家@manga-qa-team",
+      "name": "R4-测试架构专家",
+      "role": "R4-测试架构首席专家"
+    },
+    {
+      "memberId": "R5-自动化测试工程师@manga-qa-team",
+      "name": "R5-自动化测试工程师",
+      "role": "R5-自动化测试工程师"
+    },
+    {
+      "memberId": "R7-测试审计师@manga-qa-team",
+      "name": "R7-测试审计师",
+      "role": "R7-测试用例审计师"
+    },
+    {
+      "memberId": "R13-项目总监@manga-qa-team",
+      "name": "R13-项目总监",
+      "role": "R13-项目总监"
+    },
+    {
+      "memberId": "R6-性能测试专家@manga-qa-team",
+      "name": "R6-性能测试专家",
+      "role": "R6-性能测试专家"
+    },
+    {
+      "memberId": "R9-AI算法工程师@manga-qa-team",
+      "name": "R9-AI算法工程师",
+      "role": "R9-AI算法工程师-P0-FIX-01"
+    },
+    {
+      "memberId": "R8-后端开发工程师@manga-qa-team",
+      "name": "R8-后端开发工程师",
+      "role": "R8-后端开发-P0-FIX-02至05"
+    },
+    {
+      "memberId": "R14-代码审查专家@manga-qa-team",
+      "name": "R14-代码审查专家",
+      "role": "R14-代码审查专家-监督第1轮"
+    },
+    {
+      "memberId": "R15-前端工程师@manga-qa-team",
+      "name": "R15-前端工程师",
+      "role": "R15-前端工程师-P1-React Query集成"
+    },
+    {
+      "memberId": "R16-前端工程师@manga-qa-team",
+      "name": "R16-前端工程师",
+      "role": "R16-前端-P1-PropertyPanel术语校对OCR"
+    },
+    {
+      "memberId": "R17-前端工程师@manga-qa-team",
+      "name": "R17-前端工程师",
+      "role": "R17-前端-Hook拆分移动端批量重试"
+    }
+  ],
+  "isAutoTeam": false
+}

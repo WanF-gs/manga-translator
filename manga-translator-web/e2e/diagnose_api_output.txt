@@ -1,0 +1,27 @@
+Token: eyJhbGciOiJIUzI1NiIs...
+Project: 龙 | status: 200
+Chapters status: 200 | count: 1
+First chapter: 42efacca-8bf6-46e2-b4eb-398b098849b3
+Pages endpoint status: 200
+Pages body (first 500): {"code":0,"message":"success","data":{"items":[{"page_id":"01c49bec-4440-44cd-9037-fb5860a19522","original_url":"/api/v1/pages/01c49bec-4440-44cd-9037-fb5860a19522/image","thumbnail_url":"/storage/7bbe8a2f-0e80-4447-a63b-51f7e6fe195f/originals/thumb_3d2da1ef81cf44228a103c3064d23cd1.jpg","sort_order":1,"status":"pending","width":4782,"height":3400,"region_count":0},{"page_id":"54b3b9ae-ff18-4ddd-a51d-d3e58186bcc0","original_url":"/api/v1/pages/54b3b9ae-ff18-4ddd-a51d-d3e58186bcc0/image","thumbnai
+Pages count: 344
+First page ID: 01c49bec-4440-44cd-9037-fb5860a19522
+Page detail status: 200
+Page detail keys: [
+  'page_id',
+  'chapter_id',
+  'original_url',
+  'processed_url',
+  'thumbnail_url',
+  'sort_order',
+  'status',
+  'width',
+  'height',
+  'file_size',
+  'preprocessing_result',
+  'regions'
+]
+Width: 4782 Height: 3400
+Original URL: /api/v1/pages/01c49bec-4440-44cd-9037-fb5860a19522/image
+Region count: 0
+Exit: 0 

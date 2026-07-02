@@ -1,0 +1,36 @@
+
+=== 第2页 ===
+  Current scale: 100 % → target: 25 %
+  缩放 25%: 图片 1195x1700 → 显示 598x850, 容器 598x850, 选区数=0
+    wrapperCSS: {"w":"598px","h":"850px","transform":"matrix(1, 0, 0, 1, 0, 0)"}
+    选区样本: []
+  截图: e2e/reproduce_p2_s25.png
+  Current scale: 25 % → target: 100 %
+  缩放 100%: 图片 1195x1700 → 显示 2390x3400, 容器 2390x3400, 选区数=0
+    wrapperCSS: {"w":"2390px","h":"3400px","transform":"matrix(1, 0, 0, 1, 0, 0)"}
+    选区样本: []
+  截图: e2e/reproduce_p2_s100.png
+  Current scale: 100 % → target: 200 %
+  缩放 200%: 图片 1195x1700 → 显示 4780x6800, 容器 4780x6800, 选区数=0
+    wrapperCSS: {"w":"4780px","h":"6800px","transform":"matrix(1, 0, 0, 1, 0, 0)"}
+    选区样本: []
+  截图: e2e/reproduce_p2_s200.png
+
+=== 第4页 ===
+  Current scale: 200 % → target: 25 %
+  缩放 25%: 图片 1166x1700 → 显示 583x850, 容器 583x850, 选区数=0
+    wrapperCSS: {"w":"583px","h":"850px","transform":"matrix(1, 0, 0, 1, 0, 0)"}
+    选区样本: []
+  截图: e2e/reproduce_p4_s25.png
+  Current scale: 25 % → target: 100 %
+  缩放 100%: 图片 1166x1700 → 显示 2332x3400, 容器 2332x3400, 选区数=0
+    wrapperCSS: {"w":"2332px","h":"3400px","transform":"matrix(1, 0, 0, 1, 0, 0)"}
+    选区样本: []
+  截图: e2e/reproduce_p4_s100.png
+  Current scale: 100 % → target: 200 %
+  缩放 200%: 图片 1166x1700 → 显示 4664x6800, 容器 4664x6800, 选区数=0
+    wrapperCSS: {"w":"4664px","h":"6800px","transform":"matrix(1, 0, 0, 1, 0, 0)"}
+    选区样本: []
+  截图: e2e/reproduce_p4_s200.png
+
+所有截图已保存。

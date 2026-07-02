@@ -1,0 +1,33 @@
+{
+  "name": "manga-editor-enhancement",
+  "leadAgentId": "8266958109524fc6afb43747d69dad3a",
+  "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+  "createdAt": "2026-06-22T14:54:42.876Z",
+  "options": {
+    "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@manga-editor-enhancement",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    },
+    {
+      "memberId": "canvas-panel-dev@manga-editor-enhancement",
+      "name": "canvas-panel-dev",
+      "role": "Canvas & Panel Components Dev"
+    },
+    {
+      "memberId": "editor-flow-dev@manga-editor-enhancement",
+      "name": "editor-flow-dev",
+      "role": "Editor Flow & Batch Process"
+    },
+    {
+      "memberId": "reader-mobile-dev@manga-editor-enhancement",
+      "name": "reader-mobile-dev",
+      "role": "Reader & Mobile Improvements"
+    }
+  ],
+  "isAutoTeam": false
+}

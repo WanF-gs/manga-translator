@@ -1,0 +1,72 @@
+# ============================================================
+# AI Gateway GPU Dockerfile — PRD v3.0 GPU support
+# Extends base with NVIDIA CUDA, ONNX Runtime GPU, and PyTorch
+# ============================================================
+FROM python:3.11-slim-bookworm
+
+# NVIDIA CUDA runtime (optional — falls back to CPU if no GPU)
+# Uncomment the line below and switch to nvidia/cuda:12.4.0-runtime-ubuntu22.04 for full GPU
+# FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+
+WORKDIR /app
+
+# System dependencies (OpenCV, Tesseract OCR, libGL)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    tesseract-ocr \
+    tesseract-ocr-jpn \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-chi-tra \
+    tesseract-ocr-eng \
+    tesseract-ocr-kor \
+    libtesseract-dev \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PyTorch CPU (switch to GPU version if CUDA available)
+RUN pip install --no-cache-dir \
+    torch>=2.0.0 \
+    torchvision>=0.15.0 \
+    --index-url https://download.pytorch.org/whl/cpu
+# For GPU: --index-url https://download.pytorch.org/whl/cu121
+
+# ONNX Runtime (CPU default; switch to onnxruntime-gpu for GPU)
+RUN pip install --no-cache-dir onnxruntime>=1.17.0
+# For GPU: pip install onnxruntime-gpu>=1.17.0
+
+# AI/ML libraries
+RUN pip install --no-cache-dir \
+    opencv-python-headless>=4.8.0 \
+    Pillow>=10.0.0 \
+    numpy>=1.24.0 \
+    scipy>=1.11.0 \
+    scikit-image>=0.21.0
+
+# Python application dependencies
+COPY services/ai_gateway/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Copy application code
+COPY services/ai_gateway/ /app/service/
+COPY services/common/ /app/common/
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV GPU_ENABLED=${GPU_ENABLED:-true}
+ENV CUDA_VISIBLE_DEVICES="0"
+ENV CONCURRENT_TRANSLATION_LIMIT=3
+
+# Default: CPU mode. Set GPU_ENABLED=true and CUDA_VISIBLE_DEVICES=0 for GPU.
+# Health check
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
+    CMD curl -f http://localhost:8100/health || exit 1
+
+EXPOSE 8100
+
+CMD ["uvicorn", "service.main:app", "--host", "0.0.0.0", "--port", "8100"]

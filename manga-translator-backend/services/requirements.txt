@@ -1,0 +1,78 @@
+# ===== 所有微服务共享依赖 =====
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+alembic==1.13.0
+pydantic[email]==2.9.2
+email-validator==2.1.0
+pydantic-settings==2.5.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.9
+redis==5.1.1
+minio==7.2.7
+python-dotenv==1.0.0
+httpx==0.27.2
+
+# ===== 图像处理 =====
+Pillow==10.4.0
+opencv-contrib-python>=4.8.0  # contrib版含cv2.quality(SSIM/GMSD/BRISQUE)
+numpy>=1.24.0
+scikit-image>=0.22.0           # LBP纹理特征 + GLCM共现矩阵
+
+# ===== OCR 引擎 =====
+# manga-ocr: 专为日文漫画训练的 Transformer 模型 (Manga109 数据集)
+# 对漫画气泡/艺术字体/竖排文字识别精度远超通用 OCR（~400MB 模型）
+manga-ocr>=0.1.14
+# RapidOCR (轻量级，默认 ONNX 模型，基于 PaddleOCR)
+rapidocr-onnxruntime>=1.3.0
+# PaddleOCR 全量引擎 (PP-OCRv4，通用多语言 OCR)
+# 依赖 paddlepaddle，安装较慢（~500MB），但多语言识别精度最高
+paddlepaddle>=2.6.0
+paddleocr>=2.8.0
+# Tesseract OCR（终极回退）
+pytesseract>=0.3.10
+
+# ===== 翻译质量评估 =====
+sacrebleu>=2.4.0
+
+# ===== PDF 导出 / 导入 =====
+reportlab>=4.0.0
+PyMuPDF>=1.23.0
+img2pdf>=0.5.0
+
+# ===== 压缩包解压（RAR/7Z） =====
+rarfile>=4.1
+py7zr>=0.20.0
+
+# ===== 异步任务 =====
+celery==5.4.0
+
+# ===== 邮件发送 =====
+aiosmtplib>=3.0.0
+
+# ===== gRPC 服务间通信 =====
+grpcio==1.64.1
+grpcio-tools==1.64.1
+protobuf==5.27.2
+
+# ===== 可观测性 =====
+prometheus-fastapi-instrumentator==7.0.0
+prometheus-client==0.21.0
+python-json-logger==2.0.7
+
+# ===== 画质增强（超分辨率+上色） =====
+realesrgan>=0.3.0              # Real-ESRGAN anime模型超分辨率
+basicsr>=1.4.2                 # RRDBNet等基础架构依赖
+
+# ===== 下载工具 =====
+gdown>=5.2.0                   # Google Drive模型权重下载
+PyYAML>=6.0                    # YAML配置文件解析(BRISQUE模型)
+pytest==8.3.3
+pytest-asyncio==0.24.0
+pytest-cov==5.0.0
+pytest-mock==3.14.0
+httpx==0.27.2

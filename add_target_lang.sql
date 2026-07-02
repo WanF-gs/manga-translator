@@ -1,0 +1,1 @@
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS default_target_lang VARCHAR(10) DEFAULT 'zh-CN';

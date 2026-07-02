@@ -1,0 +1,29 @@
+[
+  {
+    "id": "msg-1782441450374-fa1f5w",
+    "from": "team-lead",
+    "to": "R8-后端开发工程师",
+    "type": "message",
+    "content": "## Round 1 回归发现3个待修复问题\n\nR5回归测试确认P0-FIX-01/04/05/06全部通过，但发现以下问题需要你修复：\n\n### 修复1: P0-FIX-03 ORM Bug — Page.page_number属性缺失 (1h)\n**问题**：`GET /api/v1/projects/{pid}/review/regions` 不再返回404，但project-service内部报错：\n```\ntype object 'Page' has no attribute 'page_number'\n```\n**位置**：`services/project_service/api/review.py` 中的 `list_review_regions` 函数\n**操作**：检查Page ORM模型中页码字段的实际属性名（可能是 `number`、`page_num`、`order` 等），修正review handler中的属性引用\n\n### 修复2: 角色管理路由404 (0.5h)\n**问题**：`GET /api/v1/projects/:pid/characters` 返回404\n**操作**：在Gateway的 `router.go` 中检查并注册 `/api/v1/projects/:pid/characters` 路由，指向 project-service\n\n### 修复3: API Key平台路由修正 (0.5h)\n**问题**：`GET /platform/keys` 返回404，但实际路由注册为 `/api-keys`\n**操作**：统一API Key管理路径 — 要么在Gateway注册 `/api/v1/platform/keys` 别名，要么更新测试/前端使用 `/api-keys` 路径\n\n### 修复后验证\n```bash\ndocker restart manga-translator-gateway-1 manga-translator-project-service-1\n```\n确认三端点返回200。\n\n完成后向main汇报。\n",
+    "timestamp": "2026-06-26T02:37:30.374Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782442048461-ikusq7",
+    "from": "team-lead",
+    "to": "R8-后端开发工程师",
+    "type": "message",
+    "content": "## P0-FIX-03 一处遗漏：original_image_url → original_url\n\nRound 2回归发现你修复了5处 `page_number`→`sort_order`，但遗漏了同一文件中的URL属性名：\n\n### 需修复\n\n**`services/project_service/api/review.py`** 第117行：\n- `p.original_image_url` → `p.original_url`\n- `p.processed_image_url` → `p.processed_url`\n\n**`services/project_service/api/audio_dynamic.py`** 第483-484行：\n- 同样将 `original_image_url`/`processed_image_url` 改为 `original_url`/`processed_url`\n\n### 验证\n```\ndocker restart manga-translator-project-service-1\ncurl GET /api/v1/projects/:pid/review/regions\n```\n预期不再报AttributeError。\n\n修复后立即汇报。\n",
+    "timestamp": "2026-06-26T02:47:28.461Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782443216280-4061wg",
+    "from": "team-lead",
+    "to": "R8-后端开发工程师",
+    "type": "message",
+    "content": "## Phase 2 Round 1：P1后端修复任务\n\n修复所有P1级别后端问题。仅修改后端代码 `manga-translator-backend/`。\n\n### P1-FIX-01：校对工作台 /review/* 端点完善（2-3h）\n- P0-FIX-03已修复基本路由和ORM属性，现在完善review端点完整功能\n- `GET /api/v1/projects/:pid/review/regions` — 确保返回完整的文字区域列表（含OCR文本、翻译文本、置信度）\n- `PUT /api/v1/projects/:pid/review/regions/:rid` — 校对修改端点（修改翻译文本、样式、位置）\n- `POST /api/v1/projects/:pid/review/regions/:rid/lock` — 锁定/解锁文字区域\n- `POST /api/v1/projects/:pid/review/comments` — 校对评论\n- `GET /api/v1/projects/:pid/review/log` — 变更日志\n- 文件：`services/project_service/api/review.py`\n\n### P1-FIX-02：预设/字体API完善（1-2h）\n- `PUT /api/v1/presets/:pid` — 预设更新（之前可能缺失）\n- `DELETE /api/v1/presets/:pid` — 预设删除\n- `GET /api/v1/fonts/:fid` — 单个字体详情\n- 如不存在，补齐handler实现\n\n### P1-FIX-03：导出端点参数适配（1h）\n- `POST /api/v1/projects/:pid/export` — 确保接受完整的导出参数：format(png/jpg/pdf)、quality(1-100)、pages(页码数组)、bilingual(boolean)、crop_margins(boolean)\n- 如参数校验缺失，补充Pydantic schema\n\n### P1-FIX-04：API延迟优化（配合R6）（1-2h）\n- 配合R6的调查结果，消除任何非预期的10s延迟\n- 检查数据库连接池配置、HTTP client超时设置\n- 检查是否有同步阻塞调用（如繁重的同步IO）\n\n### P1-FIX-05：auth/refresh Token刷新逻辑修复（0.5h）\n- Round 0基线测试发现refresh端点需要body参数\n- 确保 `POST /api/v1/auth/refresh` 接受正确的请求体格式\n- 刷新逻辑：验证refresh_token → 签发新access_token + 轮换refresh_token\n\n完成后用send_message向main汇报每项结果。\n",
+    "timestamp": "2026-06-26T03:06:56.280Z",
+    "read": true
+  }
+]

@@ -1,0 +1,32 @@
+=== 坐标系诊断 ===
+
+
+--- 浏览器诊断 ---
+  zoom: 100%
+  wrapper rect: {"x":-1479,"y":-1154,"w":4782,"h":3400}
+  img rect: {"x":-1479,"y":-1154,"w":4782,"h":3400}
+  img offset vs wrapper: {"dx":0,"dy":0}
+  img natural size: {"nw":2391,"nh":1700}
+  img offset size: {"nw":2391,"nh":1700}
+  wrapper children:
+     IMG block select-none opacity-100 {"x":-1479,"y":-1154,"w":4782,"h":3400}
+     DIV absolute inset-0 z-50 {"x":-1479,"y":-1154,"w":4782,"h":3400}
+  region positions (relative to img):
+    region[0]: (0,0) 2391×1700 abs(-1479,-1154)
+    region[1]: (1640,0) 751×1328 abs(161,-1154)
+    region[2]: (2168,0) 223×748 abs(689,-1154)
+    region[3]: (133,683) 438×669 abs(-1346,-471)
+    region[4]: (0,776) 234×542 abs(-1479,-378)
+    region[7]: (42,1314) 245×345 abs(-1437,160)
+
+--- 切换到第4页 ---
+  wrapper: {"x":-254,"y":-1154,"w":2332,"h":3400}
+  img: {"x":-254,"y":-1154,"w":2332,"h":3400}
+  img natural: {"nw":1166,"nh":1700}
+  img-wrp offset: {"dx":0,"dy":0}
+  regions:
+    region[0]: rel(541,0) 625×726
+    region[1]: rel(809,44) 185×60
+    region[2]: rel(69,55) 714×824
+    region[3]: rel(583,111) 130×203
+    region[27]: rel(0,1629) 76×64

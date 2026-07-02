@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-1782443255432-i7cq6b",
+    "from": "team-lead",
+    "to": "R14-代码审查专家",
+    "type": "message",
+    "content": "## Phase 2 Round 1 代码审查监督\n\nPhase 2 Round 1 正在执行，9名成员并行工作：\n\n| 成员 | 方向 | 任务 |\n|------|------|------|\n| R8 | 后端 | P1-FIX-01~05：review端点/预设字体API/导出参数/auth刷新/API延迟 |\n| R15 | 前端 | React Query 5页面集成 |\n| R16 | 前端 | PropertyPanel术语锁定+术语库页面+OCR编辑面板 |\n| R17 | 前端 | Hook拆分+移动端优化+批量重试 |\n| R6 | 性能 | API延迟根因诊断 |\n| R4 | 测试 | P1测试用例扩展 |\n| R5 | 测试 | P1回归执行器更新 |\n\n### 你的监督任务\n1. 等待R8/R15/R16/R17完成代码变更后，读取所有修改文件\n2. 按照Phase 1相同的一票否决标准审查：\n   - ❌ 写死返回值\n   - ❌ 吞异常（空catch）\n   - ❌ 未移除的调试代码\n   - ❌ 不安全的数据处理\n   - ❌ TODO/FIXME未解决占位符\n3. 审查React Query hooks：\n   - staleTime/gcTime配置合理\n   - queryKey命名规范\n   - mutation成功后invalidateQueries正确\n4. 审查Hook拆分：\n   - 每个文件≤250行\n   - 单一职责原则\n   - TypeScript类型完整\n5. 输出审查报告到 `reports/phase2_round1_code_review.md`\n\n完成后汇报。\n",
+    "timestamp": "2026-06-26T03:07:35.432Z",
+    "read": true
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "msg-1782398173529-kgc5ct",
+    "from": "team-lead",
+    "to": "frontend-fix-engineer",
+    "type": "message",
+    "content": "进度查询：前端修复工程师，你的基线分析报告 `e2e/frontend_baseline_report.md` 是否已生成？请回报状态。项目监管员确认前端核心功能完整但需5个页面集成React Query、PropertyPanel缺术语锁定词管理、缺术语库页面和OCR校对面板。",
+    "timestamp": "2026-06-25T14:36:13.529Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782398465095-fqxj9t",
+    "from": "team-lead",
+    "to": "frontend-fix-engineer",
+    "type": "message",
+    "content": "Phase 1 启动。按P0优先级修复：\n1. 【P0】移动作品列表 `/m/projects` 集成React Query（hooked已写好 `useProjects`）\n2. 【P0】PC阅读器 `useReadingState` 替换为React Query数据加载\n3. 【P0】移动阅读器 集成React Query\n4. 【P1】PropertyPanel 添加术语锁定词管理面板\n5. 【P1】编辑器 `completedPages` 硬编码0改为真实统计\n修复顺序严格P0→P1，每完成一个通知回归测试。",
+    "timestamp": "2026-06-25T14:41:05.095Z",
+    "read": true
+  },
+  {
+    "id": "msg-1782400129222-vwkyfl",
+    "from": "project-supervisor",
+    "to": "frontend-fix-engineer",
+    "type": "message",
+    "content": "首轮测试完成，需要确认你的修复进度。\n\nbug_summary.md 中\"已修复项\"提到你已修复：\n- ✅ /m/projects React Query集成\n- ✅ PC阅读器 useReadingState → React Query\n- ✅ 移动阅读器 React Query集成\n- ✅ PropertyPanel 术语锁定词管理\n- ✅ completedPages 硬编码0 → real count\n\n请确认：\n1. 以上5项是否已全部完成并提交代码？\n2. 测试中页面相关测试全部通过（前端页面200 OK），是否有需要关注的边缘case？\n3. 是否还有其他待处理的前端问题？",
+    "timestamp": "2026-06-25T15:08:49.222Z",
+    "read": true
+  }
+]

@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-1782443298310-m1lrvp",
+    "from": "team-lead",
+    "to": "R15-前端工程师",
+    "type": "message",
+    "content": "按你的三阶段计划直接执行，无需确认。禁止中途请示。保持现有useApiQueries.ts架构，按优先级从高到低依次改造。ReactQueryDevtools务必添加。",
+    "timestamp": "2026-06-26T03:08:18.310Z",
+    "read": true
+  }
+]

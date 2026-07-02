@@ -1,0 +1,18 @@
+{
+  "name": "frontend-sprint1",
+  "leadAgentId": "49975de895814d89b3adc04ba5e6edb5",
+  "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+  "createdAt": "2026-06-22T15:42:25.387Z",
+  "options": {
+    "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@frontend-sprint1",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    }
+  ],
+  "isAutoTeam": false
+}

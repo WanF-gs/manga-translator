@@ -1,0 +1,17 @@
+Project: 龙 dfaeda8d-05fc-40e3-bcb0-039d6e43650f
+Chapters keys: [ 'code', 'message', 'data', 'request_id', 'timestamp' ]
+Chapters count: 1
+Chapter ID: 42efacca-8bf6-46e2-b4eb-398b098849b3
+Pages keys: [ 'detail' ]
+Pages count: 0
+
+
+===== 浏览器: 第4页 100%缩放 =====
+  img rendered: 2332×3400
+  img natural: 1166×1700
+  overlay: 2332×3400
+  img-overlay offset: (0, 0)
+  wrapper padding: 0px, border: 0px solid rgb(229, 231, 235)
+  img display: block, position: static
+
+  Full screenshot saved.

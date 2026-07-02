@@ -1,0 +1,33 @@
+{
+  "name": "phase0-baseline-audit",
+  "leadAgentId": "b92bf54404fa4fc193e5a1756f246173",
+  "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+  "createdAt": "2026-06-26T04:53:38.683Z",
+  "options": {
+    "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@phase0-baseline-audit",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    },
+    {
+      "memberId": "backend-auditor@phase0-baseline-audit",
+      "name": "backend-auditor",
+      "role": "Audit backend API routes vs PRD"
+    },
+    {
+      "memberId": "frontend-auditor@phase0-baseline-audit",
+      "name": "frontend-auditor",
+      "role": "Audit frontend pages vs PRD"
+    },
+    {
+      "memberId": "ai-service-auditor@phase0-baseline-audit",
+      "name": "ai-service-auditor",
+      "role": "Audit AI services and existing tests"
+    }
+  ],
+  "isAutoTeam": false
+}

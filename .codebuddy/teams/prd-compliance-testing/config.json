@@ -1,0 +1,43 @@
+{
+  "name": "prd-compliance-testing",
+  "leadAgentId": "d4a57ebb556340e797527bb427c3a2e6",
+  "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+  "createdAt": "2026-06-25T14:33:20.103Z",
+  "options": {
+    "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@prd-compliance-testing",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    },
+    {
+      "memberId": "prd-compliance-specialist@prd-compliance-testing",
+      "name": "prd-compliance-specialist",
+      "role": "PRD合规与场景拆解专员"
+    },
+    {
+      "memberId": "project-supervisor@prd-compliance-testing",
+      "name": "project-supervisor",
+      "role": "项目监管员"
+    },
+    {
+      "memberId": "test-architect@prd-compliance-testing",
+      "name": "test-architect",
+      "role": "测试架构师 - 准备测试框架"
+    },
+    {
+      "memberId": "backend-fix-engineer@prd-compliance-testing",
+      "name": "backend-fix-engineer",
+      "role": "后端修复工程师 - 代码基线分析"
+    },
+    {
+      "memberId": "frontend-fix-engineer@prd-compliance-testing",
+      "name": "frontend-fix-engineer",
+      "role": "前端修复工程师 - 代码基线分析"
+    }
+  ],
+  "isAutoTeam": false
+}

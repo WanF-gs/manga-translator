@@ -1,0 +1,43 @@
+{
+  "name": "manga-translator-team",
+  "leadAgentId": "82b6841edcd64b83b48dab81ec7efeaa",
+  "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+  "createdAt": "2026-06-26T07:17:41.084Z",
+  "options": {
+    "workspacePath": "c:/Users/WanFi/Desktop/大三实训/demo_04",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@manga-translator-team",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    },
+    {
+      "memberId": "prd-compliance-officer@manga-translator-team",
+      "name": "prd-compliance-officer",
+      "role": "PRD首席合规官-对标清单"
+    },
+    {
+      "memberId": "boundary-auditor@manga-translator-team",
+      "name": "boundary-auditor",
+      "role": "业务边界审计师-边界报告"
+    },
+    {
+      "memberId": "data-compliance-expert@manga-translator-team",
+      "name": "data-compliance-expert",
+      "role": "数据合规专家-合规审计"
+    },
+    {
+      "memberId": "test-architect@manga-translator-team",
+      "name": "test-architect",
+      "role": "测试架构专家-测试用例集"
+    },
+    {
+      "memberId": "test-case-auditor@manga-translator-team",
+      "name": "test-case-auditor",
+      "role": "测试用例审计师-覆盖审计"
+    }
+  ],
+  "isAutoTeam": false
+}

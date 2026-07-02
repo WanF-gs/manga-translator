@@ -1,0 +1,54 @@
+登录...
+进入项目...
+  第2页: 选区数=18 (点击成功)
+  缩放: 25%
+  缩放25%: img=1195x1700→598x850, wrapper=598x850, regions=5
+    region[0]: {"idx":0,"style":"left: 9.24686%; top: 0%; width: 40.7531%; height: 36.7059%; box-sizing: border-b","rect":{"x":"668","y":"121","w":"244","h":"312"}}
+    region[1]: {"idx":1,"style":"left: 10.6695%; top: 0%; width: 11.0042%; height: 7.82353%; box-sizing: border-b","rect":{"x":"677","y":"121","w":"66","h":"67"}}
+    region[2]: {"idx":2,"style":"left: 19.8326%; top: 0%; width: 23.3054%; height: 7.38235%; box-sizing: border-b","rect":{"x":"732","y":"121","w":"139","h":"63"}}
+    region[3]: {"idx":3,"style":"left: 19.0795%; top: 0.735294%; width: 6.48536%; height: 5.88235%; box-sizing: b","rect":{"x":"727","y":"127","w":"48","h":"50"}}
+    region[4]: {"idx":4,"style":"left: 42.8452%; top: 13.7059%; width: 2.80335%; height: 8.44118%; box-sizing: bo","rect":{"x":"869","y":"238","w":"48","h":"72"}}
+  📷 e2e/vv_p2_s25.png
+  缩放: 100%
+  缩放100%: img=1195x1700→2390x3400, wrapper=2390x3400, regions=5
+    region[0]: {"idx":0,"style":"left: 9.24686%; top: 0%; width: 40.7531%; height: 36.7059%; box-sizing: border-b","rect":{"x":"-62","y":"-1154","w":"974","h":"1248"}}
+    region[1]: {"idx":1,"style":"left: 10.6695%; top: 0%; width: 11.0042%; height: 7.82353%; box-sizing: border-b","rect":{"x":"-28","y":"-1154","w":"263","h":"266"}}
+    region[2]: {"idx":2,"style":"left: 19.8326%; top: 0%; width: 23.3054%; height: 7.38235%; box-sizing: border-b","rect":{"x":"191","y":"-1154","w":"557","h":"251"}}
+    region[3]: {"idx":3,"style":"left: 19.0795%; top: 0.735294%; width: 6.48536%; height: 5.88235%; box-sizing: b","rect":{"x":"173","y":"-1129","w":"155","h":"200"}}
+    region[4]: {"idx":4,"style":"left: 42.8452%; top: 13.7059%; width: 2.80335%; height: 8.44118%; box-sizing: bo","rect":{"x":"741","y":"-688","w":"67","h":"287"}}
+  📷 e2e/vv_p2_s100.png
+  缩放: 200%
+  缩放200%: img=1195x1700→4780x6800, wrapper=4780x6800, regions=5
+    region[0]: {"idx":0,"style":"left: 9.24686%; top: 0%; width: 40.7531%; height: 36.7059%; box-sizing: border-b","rect":{"x":"-1036","y":"-2854","w":"1948","h":"2496"}}
+    region[1]: {"idx":1,"style":"left: 10.6695%; top: 0%; width: 11.0042%; height: 7.82353%; box-sizing: border-b","rect":{"x":"-968","y":"-2854","w":"526","h":"532"}}
+    region[2]: {"idx":2,"style":"left: 19.8326%; top: 0%; width: 23.3054%; height: 7.38235%; box-sizing: border-b","rect":{"x":"-530","y":"-2854","w":"1114","h":"502"}}
+    region[3]: {"idx":3,"style":"left: 19.0795%; top: 0.735294%; width: 6.48536%; height: 5.88235%; box-sizing: b","rect":{"x":"-566","y":"-2804","w":"310","h":"400"}}
+    region[4]: {"idx":4,"style":"left: 42.8452%; top: 13.7059%; width: 2.80335%; height: 8.44118%; box-sizing: bo","rect":{"x":"570","y":"-1922","w":"134","h":"574"}}
+  📷 e2e/vv_p2_s200.png
+  第4页: 选区数=28 (点击成功)
+  缩放: 25%
+  缩放25%: img=1166x1700→583x850, wrapper=583x850, regions=5
+    region[0]: {"idx":0,"style":"left: 23.199%; top: 0%; width: 26.801%; height: 21.3529%; box-sizing: border-box","rect":{"x":"756","y":"121","w":"156","h":"182"}}
+    region[1]: {"idx":1,"style":"left: 34.6913%; top: 1.29412%; width: 7.9331%; height: 1.76471%; box-sizing: bor","rect":{"x":"823","y":"132","w":"48","h":"48"}}
+    region[2]: {"idx":2,"style":"left: 2.95883%; top: 1.61765%; width: 30.6175%; height: 24.2353%; box-sizing: bo","rect":{"x":"638","y":"135","w":"179","h":"206"}}
+    region[3]: {"idx":3,"style":"left: 25%; top: 3.26471%; width: 5.57461%; height: 5.97059%; box-sizing: border-","rect":{"x":"766","y":"149","w":"48","h":"51"}}
+    region[4]: {"idx":4,"style":"left: 41.5523%; top: 4.32353%; width: 3.55918%; height: 0.470588%; box-sizing: b","rect":{"x":"863","y":"158","w":"48","h":"48"}}
+  📷 e2e/vv_p4_s25.png
+  缩放: 100%
+  缩放100%: img=1166x1700→2332x3400, wrapper=2332x3400, regions=5
+    region[0]: {"idx":0,"style":"left: 23.199%; top: 0%; width: 26.801%; height: 21.3529%; box-sizing: border-box","rect":{"x":"287","y":"-1154","w":"625","h":"726"}}
+    region[1]: {"idx":1,"style":"left: 34.6913%; top: 1.29412%; width: 7.9331%; height: 1.76471%; box-sizing: bor","rect":{"x":"555","y":"-1110","w":"185","h":"60"}}
+    region[2]: {"idx":2,"style":"left: 2.95883%; top: 1.61765%; width: 30.6175%; height: 24.2353%; box-sizing: bo","rect":{"x":"-185","y":"-1099","w":"714","h":"824"}}
+    region[3]: {"idx":3,"style":"left: 25%; top: 3.26471%; width: 5.57461%; height: 5.97059%; box-sizing: border-","rect":{"x":"329","y":"-1043","w":"130","h":"203"}}
+    region[4]: {"idx":4,"style":"left: 41.5523%; top: 4.32353%; width: 3.55918%; height: 0.470588%; box-sizing: b","rect":{"x":"715","y":"-1007","w":"83","h":"16"}}
+  📷 e2e/vv_p4_s100.png
+  缩放: 200%
+  缩放200%: img=1166x1700→4664x6800, wrapper=4664x6800, regions=5
+    region[0]: {"idx":0,"style":"left: 23.199%; top: 0%; width: 26.801%; height: 21.3529%; box-sizing: border-box","rect":{"x":"-338","y":"-2854","w":"1250","h":"1452"}}
+    region[1]: {"idx":1,"style":"left: 34.6913%; top: 1.29412%; width: 7.9331%; height: 1.76471%; box-sizing: bor","rect":{"x":"198","y":"-2766","w":"370","h":"120"}}
+    region[2]: {"idx":2,"style":"left: 2.95883%; top: 1.61765%; width: 30.6175%; height: 24.2353%; box-sizing: bo","rect":{"x":"-1282","y":"-2744","w":"1428","h":"1648"}}
+    region[3]: {"idx":3,"style":"left: 25%; top: 3.26471%; width: 5.57461%; height: 5.97059%; box-sizing: border-","rect":{"x":"-254","y":"-2632","w":"260","h":"406"}}
+    region[4]: {"idx":4,"style":"left: 41.5523%; top: 4.32353%; width: 3.55918%; height: 0.470588%; box-sizing: b","rect":{"x":"518","y":"-2560","w":"166","h":"32"}}
+  📷 e2e/vv_p4_s200.png
+
+全部截图完成

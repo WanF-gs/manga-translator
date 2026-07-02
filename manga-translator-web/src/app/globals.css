@@ -1,0 +1,350 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== 全局基础样式 ===== */
+
+@layer base {
+  :root {
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --primary: 59 130 246;
+    --accent: 249 115 22;
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(203, 213, 225, 0.6);
+  }
+
+  .dark {
+    --background: 15 23 42;
+    --foreground: 248 250 252;
+    --primary: 96 165 250;
+    --accent: 251 146 60;
+    --glass-bg: rgba(15, 23, 42, 0.75);
+    --glass-border: rgba(51, 65, 85, 0.6);
+  }
+
+  /* P2 A11y: High contrast mode (WCAG 2.1 AA §1.4.3 Contrast Minimum) */
+  .high-contrast {
+    --background: 255 255 255;
+    --foreground: 0 0 0;
+    --primary: 0 0 200;
+    --accent: 180 40 0;
+    --glass-bg: rgba(255, 255, 255, 1);
+    --glass-border: rgba(0, 0, 0, 0.5);
+  }
+  .high-contrast.dark {
+    --background: 0 0 0;
+    --foreground: 255 255 255;
+    --primary: 80 160 255;
+    --accent: 255 180 80;
+    --glass-bg: rgba(0, 0, 0, 1);
+    --glass-border: rgba(255, 255, 255, 0.5);
+  }
+  .high-contrast * {
+    border-color: currentColor !important;
+  }
+  .high-contrast a, .high-contrast button, .high-contrast [role="button"] {
+    text-decoration: underline;
+  }
+  .high-contrast input, .high-contrast select, .high-contrast textarea {
+    border: 2px solid currentColor !important;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-surface-dark dark:text-slate-100;
+    min-height: 100vh;
+  }
+
+  /* 自定义滚动条 - 更精致 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300/80 dark:bg-slate-600/80 rounded-full;
+    transition: background-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-500;
+  }
+
+  /* 选中文本颜色 */
+  ::selection {
+    @apply bg-primary-200/70 text-primary-900 dark:bg-primary-800/50 dark:text-primary-100;
+  }
+}
+
+/* ===== 组件级样式 ===== */
+
+@layer components {
+  /* 增强玻璃态卡片 */
+  .glass-card {
+    @apply bg-white/75 dark:bg-slate-800/70 backdrop-blur-xl
+           border border-slate-200/60 dark:border-slate-700/50
+           rounded-xl shadow-card;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-card-hover {
+    @apply glass-card cursor-pointer;
+  }
+
+  .glass-card-hover:hover {
+    @apply shadow-card-hover border-primary-200 dark:border-primary-700/50;
+    transform: translateY(-2px);
+  }
+
+  /* 玻璃态面板（更强调） */
+  .glass-panel {
+    @apply bg-white/90 dark:bg-slate-900/85 backdrop-blur-2xl
+           border border-slate-200/50 dark:border-slate-700/50
+           rounded-xl shadow-panel;
+  }
+
+  /* 状态徽标 */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+           transition-colors duration-200;
+  }
+
+  .status-pending {
+    @apply bg-slate-100 text-slate-600 dark:bg-slate-700/70 dark:text-slate-400;
+  }
+
+  .status-translating {
+    @apply bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400
+           animate-pulse-soft;
+  }
+
+  .status-reviewed {
+    @apply bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400;
+  }
+
+  .status-completed {
+    @apply bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400;
+  }
+
+  /* 按钮变体 */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-primary-500 hover:bg-primary-600 active:bg-primary-700
+           text-white font-medium rounded-lg
+           shadow-sm shadow-primary-500/25
+           transition-all duration-200 ease-out
+           disabled:opacity-50 disabled:cursor-not-allowed
+           disabled:shadow-none;
+  }
+  .btn-primary:hover {
+    @apply shadow-md shadow-primary-500/30;
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600
+           text-slate-700 dark:text-slate-300 font-medium rounded-lg
+           transition-all duration-200 ease-out
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           hover:bg-slate-100 dark:hover:bg-slate-800
+           text-slate-600 dark:text-slate-400 font-medium rounded-lg
+           transition-all duration-200 ease-out;
+  }
+  .btn-ghost:hover {
+    @apply text-slate-900 dark:text-slate-200;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-red-500 hover:bg-red-600 active:bg-red-700
+           text-white font-medium rounded-lg
+           shadow-sm shadow-red-500/25
+           transition-all duration-200 ease-out;
+  }
+  .btn-danger:hover {
+    @apply shadow-md shadow-red-500/30;
+    transform: translateY(-1px);
+  }
+  .btn-danger:active {
+    transform: translateY(0);
+  }
+
+  /* 输入框 */
+  .input-field {
+    @apply w-full px-3 py-2 bg-white dark:bg-slate-800
+           border border-slate-300 dark:border-slate-600
+           rounded-lg text-slate-900 dark:text-slate-100
+           placeholder:text-slate-400 dark:placeholder:text-slate-500
+           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400
+           transition-all duration-200 ease-out;
+  }
+  .input-field:hover {
+    @apply border-slate-400 dark:border-slate-500;
+  }
+
+  /* 标签 */
+  .label {
+    @apply block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1;
+  }
+
+  /* 分割线 */
+  .divider {
+    @apply border-t border-slate-200 dark:border-slate-700;
+  }
+}
+
+/* ===== 工具类 ===== */
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .drag-overlay {
+    @apply ring-2 ring-primary-500 ring-offset-2 rounded-lg;
+  }
+
+  /* 微妙渐变文字效果 */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500
+           dark:from-primary-400 dark:via-primary-300 dark:to-accent-400;
+  }
+
+  /* 卡片悬浮发光 */
+  .hover-glow:hover {
+    box-shadow: 0 0 25px -5px rgb(59 130 246 / 0.3), 0 8px 16px -6px rgb(0 0 0 / 0.1);
+  }
+}
+
+/* ===== 动画 ===== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 增强骨架屏 - 更流畅的 shimmer 效果 */
+.skeleton {
+  @apply bg-slate-200 dark:bg-slate-700 rounded;
+  background: linear-gradient(
+    110deg,
+    rgb(226 232 240 / 0.5) 8%,
+    rgb(241 245 249 / 0.8) 18%,
+    rgb(226 232 240 / 0.5) 33%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    110deg,
+    rgb(51 65 85 / 0.5) 8%,
+    rgb(71 85 105 / 0.7) 18%,
+    rgb(51 65 85 / 0.5) 33%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes nav-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* 页面入场动画 */
+@keyframes pageEnter {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-page-enter {
+  animation: pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 交错子元素入场 */
+.animate-stagger > * {
+  opacity: 0;
+  animation: pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.animate-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.animate-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.animate-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.animate-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.animate-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+.animate-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+.animate-stagger > *:nth-child(8) { animation-delay: 0.4s; }
+
+/* 微妙背景渐变动画 */
+.bg-animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* ===== P2 A11y: Reduced motion (WCAG 2.1 §2.3.3) ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton {
+    animation: none !important;
+    background: rgb(203 213 225);
+  }
+
+  .dark .skeleton {
+    background: rgb(71 85 105);
+  }
+
+  .bg-animate-gradient {
+    animation: none !important;
+  }
+
+  .hover-glow:hover {
+    box-shadow: none !important;
+  }
+}
+
+/* ===== P2 A11y: High contrast auto-detection ===== */
+@media (prefers-contrast: high) {
+  :root:not(.high-contrast) {
+    --bg: 255 255 255;
+    --fg: 0 0 0;
+  }
+}

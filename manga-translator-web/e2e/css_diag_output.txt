@@ -1,0 +1,81 @@
+=== CSS Layout Diagnostic ===
+Viewport: 1920 x 1080
+Natural: {"w":2391,"h":1700}
+Attr: {"w":"4782","h":"3400"}
+Total images on page: 345
+
+--- CSS Chain (from img up to body) ---
+
+[0] IMG | display:block | CSS:1376pxx3400px
+    rect:1376x3400 | client:1376x3400 | scroll:1376x3400
+    inlineStyle: width: 4782px; height: 3400px; image-rendering: auto; -webkit-font-smoothing: antialiased; transitio
+    maxW:100% | minW:0px | overflow:clip
+    flexBasis:auto | grow:0 | shrink:1
+
+[1] DIV | display:block | CSS:1376pxx3400px
+    rect:1376x3400 | client:1376x3400 | scroll:1376x3400
+    inlineStyle: width: 4782px; height: 3400px; transform: translate3d(0px, 0px, 0px); backface-visibility: hidden; c
+    maxW:none | minW:auto | overflow:hidden
+    flexBasis:auto | grow:0 | shrink:1
+
+[2] DIV | display:flex | CSS:1440pxx996px
+    rect:1440x996 | client:1440x996 | scroll:1440x2230
+    inlineStyle: 
+    maxW:none | minW:auto | overflow:hidden
+    flexBasis:0% | grow:1 | shrink:1
+
+[3] DIV | display:flex | CSS:1440pxx996px
+    rect:1440x996 | client:1440x996 | scroll:1440x996
+    inlineStyle: 
+    maxW:none | minW:auto | overflow:visible
+    flexBasis:0% | grow:1 | shrink:1
+
+[4] DIV | display:flex | CSS:1440pxx1032px
+    rect:1440x1032 | client:1440x1032 | scroll:1440x1032
+    inlineStyle: 
+    maxW:none | minW:0px | overflow:visible
+    flexBasis:0% | grow:1 | shrink:1
+
+[5] DIV | display:flex | CSS:1920pxx1032px
+    rect:1920x1032 | client:1920x1032 | scroll:1921x1032
+    inlineStyle: 
+    maxW:none | minW:auto | overflow:hidden
+    flexBasis:0% | grow:1 | shrink:1
+    *** HAS OVERFLOW ***
+
+[6] DIV | display:flex | CSS:1920pxx1080px
+    rect:1920x1080 | client:1920x1080 | scroll:1920x1080
+    inlineStyle: 
+    maxW:none | minW:auto | overflow:visible
+    flexBasis:auto | grow:0 | shrink:1
+
+[7] MAIN | display:flex | CSS:1920pxx1080px
+    rect:1920x1080 | client:1920x1080 | scroll:1920x1080
+    inlineStyle: 
+    maxW:none | minW:auto | overflow:hidden
+    flexBasis:0% | grow:1 | shrink:1
+
+[8] DIV | display:flex | CSS:1920pxx1080px
+    rect:1920x1080 | client:1920x1080 | scroll:1920x1080
+    inlineStyle: 
+    maxW:none | minW:auto | overflow:hidden
+    flexBasis:0% | grow:1 | shrink:1
+
+[9] DIV | display:flex | CSS:1920pxx1080px
+    rect:1920x1080 | client:1920x1080 | scroll:1920x1080
+    inlineStyle: 
+    maxW:none | minW:0px | overflow:hidden
+    flexBasis:auto | grow:0 | shrink:1
+
+[10] DIV | display:block | CSS:1920pxx1080px
+    rect:1920x1080 | client:1920x1080 | scroll:1920x1080
+    inlineStyle: 
+    maxW:none | minW:0px | overflow:visible
+    flexBasis:auto | grow:0 | shrink:1
+
+Image URL: http://localhost:3000/api/v1/pages/01c49bec-4440-44cd-9037-fb5860a19522/image
+Image content-type: application/json
+Image content-length: 31
+Image status: 405
+
+Screenshot: e2e/css_diag_screenshot.png
