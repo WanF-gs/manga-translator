@@ -15,6 +15,19 @@ logger = logging.getLogger(__name__)
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# url补全：相对路径→完整 HTTP URL（修复PBP-VIS多模态翻译图片下载失败）
+STORAGE_BASE_URL = os.getenv("STORAGE_BASE_URL", "http://localhost:8002")
+
+def _resolve_image_url(image_url: str) -> str:
+    """补全相对路径为完整 HTTP URL，否则 httpx 无法下载图片。"""
+    if not image_url:
+        return image_url
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        return image_url
+    if image_url.startswith("/"):
+        return f"{STORAGE_BASE_URL}{image_url}"
+    return f"{STORAGE_BASE_URL}/{image_url}"
+
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -164,7 +177,7 @@ class TranslationService:
                     current_region_index=idx, regions=regions, previous_context=previous_context,
                 )
                 if page and page.original_url:
-                    context["image_url"] = page.original_url
+                    context["image_url"] = _resolve_image_url(page.original_url)
                 # PBP-VIS: page-level context + term glossary
                 context["all_page_texts"] = all_page_texts
                 context["term_glossary"] = term_glossary

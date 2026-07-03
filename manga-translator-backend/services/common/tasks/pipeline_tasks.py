@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 
 from common.tasks.celery_app import celery_app
+from common.tasks.vocab_extractor import extract_vocabulary_from_page
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,10 @@ def run_pipeline_for_page(
                         if tracker:
                             tracker.update_page_progress(page_id, step, "completed")
                     
+                    # §3.0: After translate success, extract vocab for learning center
+                    if step == "translate" and result.get("status") == "ok" and user_id:
+                        await extract_vocabulary_from_page(db, page_id, user_id, source_lang)
+
                     # Update page status after each step
                     status_map = {
                         "detect": "detected",
@@ -153,6 +158,10 @@ def run_pipeline_for_page(
                             if step in status_map:
                                 page.status = status_map[step]
                                 await db.flush()
+
+                            # §3.0: After retry translate success, extract vocab
+                            if step == "translate" and user_id:
+                                await extract_vocabulary_from_page(db, page_id, user_id, source_lang)
                     except Exception as e2:
                         logger.error(f"Step {step} failed after retry for page {page_id}: {e2}")
                         pipeline_results[step] = {"status": "skipped", "error": str(e2), "retried": True}
@@ -356,6 +365,9 @@ async def _do_translate(db, page, page_id: str, user_id: str, source_lang: str, 
     translated_count = len([r for r in translate_result.get("regions", []) if r.get("translated_text")])
     return {"status": "ok", "regions_translated": translated_count, "engine": translate_result.get("engine", "basic")}
 
+
+# ── §3.0 词汇自动收集：翻译后提取生词加入学习中心 ──
+# (Moved to common.tasks.vocab_extractor for reuse across Celery and sync paths)
 
 async def _do_inpaint(db, page, page_id: str, user_id: str) -> dict:
     """Inpainting step."""

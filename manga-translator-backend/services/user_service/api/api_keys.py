@@ -45,7 +45,7 @@ async def create_api_key(
     """Create a new API key. Returns the full key only once!"""
     raw_key = API_KEY_PREFIX + secrets.token_urlsafe(32)
     key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
-    key_prefix = raw_key[:10]
+    key_prefix = raw_key[:8]  # 匹配数据库 key_prefix VARCHAR(8)
 
     api_key = APIKey(
         user_id=current_user["sub"],

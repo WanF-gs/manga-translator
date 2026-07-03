@@ -3,7 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
-import os, uuid
+import os, uuid, random, re
+
 
 import sys, os as _os
 _cur = _os.path.dirname(_os.path.abspath(__file__))
@@ -153,48 +154,154 @@ async def smart_match_font(
     bubble_type: Optional[str] = Query(None),
     style_tag: Optional[str] = Query(None),
     project_id: Optional[str] = Query(None),
+    text: Optional[str] = Query(None, description="区域文本，用于语言检测"),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Smart font matching - returns best font recommendations based on context."""
+    """Smart font matching - returns best font recommendations based on context.
+
+    评分维度（对标 BalloonsTranslator / manga-translator-ui 的做法）：
+    1. 文本语言匹配（日文优先日语字体，中文优先中文字体）
+    2. 气泡类型语义（thought 用柔和字体，sfx 用粗体，narration 用清晰字体）
+    3. 角色语气（tone_type）
+    4. 项目源语言
+    5. 系统字体小幅加分（稳定可用）
+    6. 同分随机化，避免每次推荐完全一致
+    """
     query = select(Font).where(
         (Font.user_id.is_(None)) | (Font.user_id == current_user["sub"]),
         Font.is_active == True,
     )
     fonts = (await db.execute(query)).scalars().all()
 
+    # 文本语言检测
+    def detect_text_language(t: Optional[str]) -> str:
+        if not t:
+            return ""
+        # 移除空格、数字和常见标点
+        sample = re.sub(r"[\s0-9!\"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~。，、；：？！「」『』（）［］【】《》〈〉\"'…—～·]", "", t)[:40]
+        if not sample:
+            return ""
+        ja = sum(1 for ch in sample if "\u3040" <= ch <= "\u30ff" or "\u31f0" <= ch <= "\u31ff")
+        ko = sum(1 for ch in sample if "\uac00" <= ch <= "\ud7af")
+        zh = sum(1 for ch in sample if "\u4e00" <= ch <= "\u9fff")
+        total = len(sample)
+        if total == 0:
+            return ""
+        if ja / total > 0.3:
+            return "ja"
+        if ko / total > 0.3:
+            return "ko"
+        if zh / total > 0.3:
+            return "zh"
+        # 剩下假定为拉丁/英文
+        return "en"
+
+    text_lang = detect_text_language(text)
+
+    # 语气 → 推荐字体名映射
     tone_font_map = {
         "tsundere": ["少女漫风格字体", "系统默认对话字体"],
         "hotblooded": ["热血漫风格字体", "拟声词特效字体"],
-        "calm": ["系统默认对话字体", "旁白标准字体"],
+        "calm": ["旁白标准字体", "系统默认对话字体"],
         "cold": ["恐怖漫氛围字体", "系统默认对话字体"],
         "loli": ["少女漫风格字体", "手写风格字体"],
         "genki": ["热血漫风格字体", "手写风格字体"],
+        "serious": ["系统默认对话字体", "旁白标准字体"],
     }
 
-    bubble_font_map = {
-        "speech": "dialogue",
-        "thought": "dialogue",
-        "narration": "narration",
-        "onomatopoeia": "onomatopoeia",
-        "effect": "onomatopoeia",
+    # 气泡类型 → 期望类别 + 推荐字体名
+    bubble_profile = {
+        "speech":   {"category": "dialogue", "soft": False, "bold": False,
+                     "fonts": ["系统默认对话字体", "旁白标准字体"]},
+        "thought":  {"category": "dialogue", "soft": True, "bold": False,
+                     "fonts": ["少女漫风格字体", "手写风格字体", "旁白标准字体"]},
+        "narration":{"category": "narration", "soft": False, "bold": False,
+                     "fonts": ["旁白标准字体", "系统默认对话字体"]},
+        "onomatopoeia": {"category": "onomatopoeia", "soft": False, "bold": True,
+                         "fonts": ["拟声词特效字体", "热血漫风格字体", "标题装饰字体"]},
+        "effect":   {"category": "onomatopoeia", "soft": False, "bold": True,
+                     "fonts": ["拟声词特效字体", "热血漫风格字体"]},
+        "title":    {"category": "title", "soft": False, "bold": True,
+                     "fonts": ["标题装饰字体", "热血漫风格字体"]},
     }
+    profile = bubble_profile.get(bubble_type or "speech", bubble_profile["speech"])
 
     def score(f: Font) -> float:
         s = 0.0
-        if tone_type and f.name in tone_font_map.get(tone_type, []):
-            s += 3.0
-        if bubble_type and f.category == bubble_font_map.get(bubble_type, ""):
-            s += 2.0
-        if style_tag and f.style_tags and style_tag in f.style_tags:
-            s += 2.0
-        if f.user_id is None:
-            s += 0.5
-        return s
+        reasons: list[str] = []
 
-    scored = sorted([(f, score(f)) for f in fonts], key=lambda x: x[1], reverse=True)
-    recommendations = [{"font": _font_to_dict(f), "score": s} for f, s in scored[:5]]
-    return success_response(data={"recommendations": recommendations, "best_match": recommendations[0]["font"] if recommendations else None})
+        # 1. 语言匹配（最高优先级 + 缺字惩罚）
+        if text_lang and f.language_tags:
+            if text_lang in f.language_tags:
+                s += 4.0
+                reasons.append(f"支持{text_lang}")
+            elif text_lang == "ja" and "zh" in f.language_tags:
+                # 日语可降级用 CJK 字体兜底
+                s += 1.5
+                reasons.append("CJK 兜底")
+            else:
+                # 语言不匹配 → 大概率缺字严重，大幅扣分
+                s -= 3.0
+                reasons.append(f"缺{text_lang}支持")
+        # 如果字体 language_tags 完全为空，也扣小分（标签缺失说明信息不全）
+        if text_lang and (not f.language_tags or len(f.language_tags) == 0):
+            s -= 1.0
+
+        # 2. 气泡类型匹配
+        if f.category == profile["category"]:
+            s += 2.5
+            reasons.append(f"匹配{profile['category']}")
+
+        # 3. 气泡类型推荐的具体字体名
+        if f.name in profile.get("fonts", []):
+            s += 2.0
+            reasons.append("场景优选")
+
+        # 4. 语气匹配
+        if tone_type and f.name in tone_font_map.get(tone_type, []):
+            s += 2.5
+            reasons.append(f"语气：{tone_type}")
+
+        # 5. 风格标签匹配
+        if style_tag and f.style_tags and style_tag in f.style_tags:
+            s += 1.5
+            reasons.append(f"风格：{style_tag}")
+
+        # 6. 粗体/柔和倾向
+        name_lower = f.name.lower()
+        if profile.get("bold") and ("bold" in name_lower or "粗" in f.name or "热血" in f.name or "特效" in f.name):
+            s += 1.0
+            reasons.append("需要冲击力")
+        if profile.get("soft") and ("少女" in f.name or "手写" in f.name or "楷" in f.name or "wenkai" in name_lower):
+            s += 1.0
+            reasons.append("柔和适合内心/旁白")
+
+        # 7. 系统字体小幅加分（文件稳定存在）
+        if f.user_id is None:
+            s += 0.3
+
+        return s, reasons
+
+    scored = [(f, *score(f)) for f in fonts]
+    # 过滤掉严重缺字（扣分过多）的字体
+    scored = [(f, s, r) for f, s, r in scored if s >= 0]
+    # 同分随机化：先按分数降序，同分按随机种子（避免完全一致）
+    random.shuffle(scored)
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    top = scored[:5]
+    recommendations = [
+        {
+            "font": _font_to_dict(f),
+            "score": round(s, 2),
+            "reason": "；".join(reasons[:3]) if reasons else "通用推荐",
+            "coverage_risk": s < 2.0,  # 低分 = 可能缺字
+        }
+        for f, s, reasons in top
+    ]
+    best = recommendations[0]["font"] if recommendations else None
+    return success_response(data={"recommendations": recommendations, "best_match": best})
 
 @router.get("/file/{filename}")
 async def get_font_file(filename: str):

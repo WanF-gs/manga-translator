@@ -897,16 +897,16 @@ async def recognize_text(
         
         h, w = img.shape[:2]
         
-        # 语言映射：日文漫画使用 jpn+chi_sim 双模型覆盖汉字混排
+        # 语言映射：单语模型，不混合中日文避免语言误判
         tess_lang_map = {
-            "ja": "jpn+chi_sim",
+            "ja": "jpn",
             "zh": "chi_sim",
             "zh-CN": "chi_sim",
             "zh-TW": "chi_tra",
             "en": "eng",
             "ko": "kor",
         }
-        tess_lang = tess_lang_map.get(lang, "jpn+chi_sim")
+        tess_lang = tess_lang_map.get(lang, "jpn")
         
         # 为每个 region 注入 type 字段（如果缺失则默认 "speech"）
         enriched_regions = []

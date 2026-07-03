@@ -4,11 +4,12 @@ from __future__ import annotations
 
 - cleanup_expired_trash: 每天清理30天前删除的项目（含MinIO文件清理）
 - cleanup_failed_tasks: 清理7天前的失败任务记录
+- cleanup_expired_premium: 每天将专业版过期的用户降级为免费版
 """
 import logging
 from datetime import datetime, timezone, timedelta
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -20,6 +21,7 @@ from common.core.config import settings
 from .celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
 
 
 def _get_async_session():

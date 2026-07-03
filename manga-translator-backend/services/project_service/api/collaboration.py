@@ -330,6 +330,17 @@ async def resolve_comment(
     await db.flush()
     return success_response(data=_comment_to_dict(comment), message="Comment resolved")
 
+
+# ── API-13: POST /comments/{comment_id}/resolve (frontend alias) ──
+@router.post("/comments/{comment_id}/resolve")
+async def resolve_comment_alias(
+    comment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Alias for PUT /comments/{comment_id}/resolve — matches frontend collaboration.ts (POST resolve)."""
+    return await resolve_comment(comment_id=comment_id, db=db, current_user=current_user)
+
 # ── Change Logs ──
 @router.get("/logs")
 async def list_change_logs(
@@ -365,7 +376,7 @@ async def list_change_logs_by_page(
     current_user: dict = Depends(get_current_user),
 ):
     """List change logs for a specific page (path param variant for frontend)."""
-    return await list_change_logs(page_id=page_id, page=page, page_size=page_size, db=db, current_user=current_user)
+    return await list_change_logs(project_id=None, page_id=page_id, page=page, page_size=page_size, db=db, current_user=current_user)
 
 @router.post("/logs")
 async def record_change_log(
@@ -383,7 +394,7 @@ async def record_change_log(
         field_name=body.get("field_name"),
         old_value=body.get("old_value"),
         new_value=body.get("new_value"),
-        metadata=body.get("metadata"),
+        extra_data=body.get("metadata") or body.get("extra_data"),
     )
     db.add(log)
     await db.flush()
@@ -432,6 +443,30 @@ async def delete_snapshot(
     await db.delete(snapshot)
     return success_response(message="Snapshot deleted")
 
+
+# ── API-14: GET /snapshots/{project_id} (frontend path-param alias) ──
+@router.get("/snapshots/{project_id}")
+async def list_snapshots_alias(
+    project_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Alias for GET /snapshots?project_id= — matches frontend collaboration.ts (path param)."""
+    return await list_snapshots(project_id=project_id, db=db, current_user=current_user)
+
+
+# ── API-15: POST /snapshots/{project_id} (frontend path-param alias) ──
+@router.post("/snapshots/{project_id}")
+async def create_snapshot_alias(
+    project_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Alias for POST /snapshots — matches frontend collaboration.ts (path param)."""
+    body["project_id"] = project_id
+    return await create_snapshot(body=body, db=db, current_user=current_user)
+
 # ── Helpers ──
 def _comment_to_dict(c: Comment) -> dict:
     return {
@@ -461,7 +496,7 @@ def _log_to_dict(l: ChangeLog) -> dict:
         "field_name": l.field_name,
         "old_value": l.old_value,
         "new_value": l.new_value,
-        "metadata": l.metadata,
+        "metadata": l.extra_data,
         "created_at": l.created_at.isoformat() if l.created_at else None,
     }
 

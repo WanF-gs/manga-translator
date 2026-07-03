@@ -37,11 +37,11 @@ func AuthMiddleware(authService *service.AuthService, cfg *config.Config) gin.Ha
 			c.Next()
 			return
 		}
-		// Skip auth for static file paths (storage / uploads)
-		if strings.HasPrefix(path, "/storage/") || strings.HasPrefix(path, "/uploads/") {
-			c.Next()
-			return
-		}
+	// Skip auth for static file paths (storage / uploads / font files)
+	if strings.HasPrefix(path, "/storage/") || strings.HasPrefix(path, "/uploads/") || strings.HasPrefix(path, "/api/v1/fonts/file/") {
+		c.Next()
+		return
+	}
 
 		// Skip if auth is disabled
 		if !cfg.Auth.Enabled {

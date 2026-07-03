@@ -32,6 +32,17 @@ class AuthService:
         self.db = db
         self.user_repo = UserRepository(db)
 
+    async def _ensure_plan_validity(self, user: User) -> None:
+        """如果专业版已过期，自动降级为免费版。"""
+        if user.plan_type == "premium" and user.premium_expires:
+            now = datetime.now(timezone.utc)
+            if user.premium_expires.tzinfo is None:
+                now = datetime.utcnow()
+            if user.premium_expires < now:
+                user.plan_type = "free"
+                user.premium_expires = None
+                await self.db.flush()
+
     async def register(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Register a new user."""
         email = data.get("email")
@@ -104,6 +115,9 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             raise ValueError("Invalid credentials")
 
+        # 自动处理专业版过期降级
+        await self._ensure_plan_validity(user)
+
         # Generate tokens
         access_token = create_access_token(str(user.user_id), user.plan_type)
         refresh_token = create_refresh_token(str(user.user_id))
@@ -153,6 +167,9 @@ class AuthService:
         user = await self.user_repo.find_by_id(str(session.user_id))
         if not user:
             raise ValueError("User not found")
+
+        # 自动处理专业版过期降级
+        await self._ensure_plan_validity(user)
 
         # Token rotation: delete old session, create new
         await self.db.delete(session)

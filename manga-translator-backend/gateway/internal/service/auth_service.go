@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"manga-translator/gateway/internal/config"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -58,7 +59,7 @@ func (s *AuthService) ValidateToken(tokenString string) (*Claims, error) {
 // IsPublicPath checks if a path should skip authentication
 func (s *AuthService) IsPublicPath(path string) bool {
 	for _, skipPath := range s.cfg.Auth.SkipPaths {
-		if len(path) >= len(skipPath) && path[:len(skipPath)] == skipPath {
+		if strings.HasPrefix(path, skipPath) {
 			return true
 		}
 	}

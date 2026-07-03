@@ -43,5 +43,10 @@ celery_app.conf.update(
             "schedule": 86400.0,  # 每天执行一次
             "options": {"expires": 1800},
         },
+        "cleanup-expired-premium": {
+            "task": "common.tasks.cleanup.cleanup_expired_premium",
+            "schedule": 86400.0,  # 每天执行一次
+            "options": {"expires": 1800},
+        },
     },
 )

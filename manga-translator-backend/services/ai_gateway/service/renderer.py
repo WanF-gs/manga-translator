@@ -32,7 +32,11 @@ CJK_FONT_CANDIDATES = [
     "NotoSansSC-Regular.otf", "NotoSansSC-VF.ttf", "NotoSansSC-Bold.otf",
     "SourceHanSansSC-Regular.otf", "SourceHanSansSC-Regular.ttf",
     "NotoSansCJK-Regular.ttc",
-    "NotoSansJP-Regular.otf", "NotoSansKR-Regular.otf",
+    "NotoSansJP-Regular.otf", "NotoSansJP-Bold.otf", "NotoSansKR-Regular.otf",
+    # 霞鹜文楷（少女漫/旁白/手写风格）
+    "LXGWWenKai-Regular.ttf", "LXGWWenKai-Bold.ttf",
+    # 漫画专用字体（对标 manga-translator-ui）
+    "anime_ace.ttf", "anime_ace_3.ttf", "comic shanns 2.ttf",
     # 系统字体
     "simsun.ttc", "simsun.ttf", "msyh.ttc", "msyh.ttf",
     "msgothic.ttc", "AppleGothic.ttf",
@@ -299,10 +303,23 @@ async def render_text_to_image(
 
         # 获取边界框
         boundary = region.get("boundary", {})
-        x = boundary.get("x", 0)
-        y = boundary.get("y", 0)
-        w = boundary.get("width", 100)
-        h = boundary.get("height", 100)
+        try:
+            x = float(boundary.get("x", 0))
+            y = float(boundary.get("y", 0))
+            w = float(boundary.get("width", 100))
+            h = float(boundary.get("height", 100))
+        except (TypeError, ValueError) as e:
+            warnings.append(f"区域 {region_id[:8]} 边界值非法，跳过")
+            continue
+
+        # P0 FIX: 过滤默认/非法边界，避免多个区域重叠在左上角
+        if x == 0 and y == 0 and w == 100 and h == 100:
+            warnings.append(f"区域 {region_id[:8]} 为默认边界，跳过")
+            continue
+        if w <= 0 or h <= 0:
+            warnings.append(f"区域 {region_id[:8]} 宽高非正，跳过")
+            continue
+
 
         # 样式参数
         is_vertical = region.get("is_vertical", False)

@@ -186,7 +186,7 @@ async def export_single_prd(
             include_detected=request.include_detected,
             bilingual=request.bilingual,
         )
-        return result
+        return success_response(data=result)
     except Exception as e:
         from common.core.response import error_response
         return error_response(code=5000, message=f"Export failed: {str(e)}", status_code=500)
@@ -213,7 +213,7 @@ async def export_batch_prd(
             page_range=request.page_range,
             naming_rule=request.naming_rule,
         )
-        return result
+        return success_response(data=result)
     except Exception as e:
         from common.core.response import error_response
         return error_response(code=5000, message=f"Export failed: {str(e)}", status_code=500)
@@ -251,7 +251,7 @@ async def get_export_status_prd(
     result = await service.get_export_status(task_id, current_user["sub"])
     if not result:
         raise HTTPException(status_code=404, detail="导出任务不存在")
-    return result
+    return success_response(data=result)
 
 
 @export_router.get("/download/{task_id}")
@@ -291,7 +291,7 @@ async def export_project_prd(
             naming_rule=request.naming_rule,
             per_chapter_cbz=request.per_chapter_cbz,
         )
-        return result
+        return success_response(data=result)
     except Exception as e:
         from common.core.response import error_response
         return error_response(code=5000, message=f"Export failed: {str(e)}", status_code=500)

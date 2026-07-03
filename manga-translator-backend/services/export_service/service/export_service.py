@@ -194,7 +194,58 @@ class ExportService:
         if not page:
             return {"task_id": task_id, "status": "failed", "error": "Page not found"}
 
-        # 获取要导出的图片
+        # P0 FIX: 通过 page → chapter → project 链正确获取 project_id
+        chapter_result = await self.db.execute(
+            select(Chapter).where(Chapter.chapter_id == page.chapter_id)
+        )
+        chapter = chapter_result.scalar_one_or_none()
+        real_project_id = chapter.project_id if chapter else page.chapter_id
+
+        # 双语对照合成（与章节/项目导出逻辑一致）
+        if bilingual and page.original_url and page.processed_url:
+            try:
+                from .bilingual_composer import BilingualComposer
+                composer = BilingualComposer()
+                bilingual_data = await composer.compose(
+                    mode="side-by-side",
+                    original_url=page.original_url,
+                    translated_url=page.processed_url,
+                )
+                if bilingual_data:
+                    img = Image.open(io.BytesIO(bilingual_data))
+                    output_data = _save_image(img, format, quality)
+                    file_size = f"{len(output_data) / (1024 * 1024):.1f}MB"
+                    # 上传
+                    object_name = f"exports/{user_id}/{task_id}/{filename}"
+                    download_url = _upload_to_minio(output_data, object_name, f"image/{format}")
+                    # 跳过下面普通导出路径
+                    export_task = ExportTask(
+                        user_id=uuid.UUID(user_id),
+                        project_id=real_project_id,
+                        chapter_ids=[str(page.chapter_id)],
+                        format=format,
+                        quality=quality,
+                        status="completed",
+                        progress=1.0,
+                        result_url=download_url,
+                        completed_at=datetime.now(timezone.utc),
+                    )
+                    self.db.add(export_task)
+                    await self.db.commit()
+                    return {
+                        "task_id": str(export_task.task_id),
+                        "status": "completed",
+                        "download_url": download_url,
+                        "pages_exported": 1,
+                        "file_size": file_size,
+                        "format": format,
+                        "quality": quality,
+                        "bilingual": True,
+                    }
+            except Exception as e:
+                logger.warning(f"Bilingual compose failed for single page {page_id}: {e}, falling back to normal export")
+
+        # 获取要导出的图片（普通导出或无原文对照图时走此路径）
         image_url = page.processed_url or page.original_url
         img_data = await _download_image(image_url)
         if not img_data:
@@ -209,18 +260,10 @@ class ExportService:
         object_name = f"exports/{user_id}/{task_id}/{filename}"
         download_url = _upload_to_minio(output_data, object_name, f"image/{format}")
 
-        # P0 FIX: 通过 page → chapter → project 链正确获取 project_id
-        # 原来的代码错误地把 page.chapter_id (章节UUID) 当作 project_id 写入
-        chapter_result = await self.db.execute(
-            select(Chapter).where(Chapter.chapter_id == page.chapter_id)
-        )
-        chapter = chapter_result.scalar_one_or_none()
-        real_project_id = chapter.project_id if chapter else page.chapter_id
-
         # 创建导出任务记录
         export_task = ExportTask(
             user_id=uuid.UUID(user_id),
-            project_id=real_project_id,  # ✅ 正确的 project_id
+            project_id=real_project_id,
             chapter_ids=[str(page.chapter_id)],
             format=format,
             quality=quality,

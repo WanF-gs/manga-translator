@@ -15,6 +15,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from common.models.page import Page
+from common.models.project import Project
 from common.models.text_region import TextRegion
 from ..repository.page_repo import PageRepository
 
@@ -28,6 +29,22 @@ class PageService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = PageRepository(db)
+
+    async def _set_project_cover_if_missing(
+        self, chapter_id: str, first_page: Page
+    ) -> None:
+        """上传首张页面后，若项目尚无封面，则使用其缩略图作为封面。"""
+        try:
+            chapter = await self.repo.find_chapter_by_id(chapter_id)
+            if not chapter:
+                return
+            project_id = chapter.project_id
+            project = await self.db.get(Project, project_id)
+            if project and not project.cover_url:
+                project.cover_url = first_page.thumbnail_url or first_page.original_url
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.warning("Failed to set project cover, skipping", exc_info=True)
 
     async def upload_pages(
         self, chapter_id: str, user_id: str, files_data: List[Dict[str, Any]]
@@ -109,6 +126,10 @@ class PageService:
             pages.append(page)
 
         await self.db.flush()
+
+        # 若上传了页面且项目尚无封面，使用首张页面作为作品封面
+        if pages:
+            await self._set_project_cover_if_missing(chapter_id, pages[0])
 
         # After successful upload, dispatch async content safety review for each page
         moderation_task_ids = []
@@ -316,6 +337,24 @@ class PageService:
             "regions": regions,
         }
 
+    @staticmethod
+    def _validate_boundary(boundary: Any, context: str = "region") -> dict:
+        """校验并规范化 boundary，防止默认/非法坐标进入 DB。"""
+        if not isinstance(boundary, dict):
+            raise ValueError(f"{context}: boundary must be a dict")
+        try:
+            x = float(boundary.get("x", 0))
+            y = float(boundary.get("y", 0))
+            w = float(boundary.get("width", 0))
+            h = float(boundary.get("height", 0))
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"{context}: boundary values must be numeric: {boundary}") from e
+        if w <= 0 or h <= 0:
+            raise ValueError(f"{context}: boundary width/height must be positive: {boundary}")
+        if x == 0 and y == 0 and w == 100 and h == 100:
+            raise ValueError(f"{context}: default boundary (0,0,100,100) is not allowed")
+        return {"x": x, "y": y, "width": w, "height": h}
+
     async def update_regions(self, page_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Update text regions on a page (batch create/update/delete)."""
         regions_data = data.get("regions", [])
@@ -336,24 +375,41 @@ class PageService:
                     if "type" in region_data:
                         region.type = region_data["type"]
                     if "boundary" in region_data:
-                        region.boundary = region_data["boundary"]
+                        region.boundary = self._validate_boundary(region_data["boundary"], "update region")
                     if "boundary_mode" in region_data:
                         region.boundary_mode = region_data["boundary_mode"]
                     if "is_locked" in region_data:
                         region.is_locked = region_data["is_locked"]
                     if "sort_order" in region_data:
                         region.sort_order = region_data["sort_order"]
+                    # §2.4.3/§2.25 FIX: 同时保存文本与样式字段，否则前端字体/字号/颜色调节无效
+                    if "original_text" in region_data:
+                        region.original_text = region_data["original_text"]
+                    if "translated_text" in region_data:
+                        region.translated_text = region_data["translated_text"]
+                    if "confidence" in region_data:
+                        region.confidence = region_data["confidence"]
+                    if "style_config" in region_data:
+                        region.style_config = region_data["style_config"]
             else:
+                boundary = self._validate_boundary(
+                    region_data.get("boundary", {}), "create region"
+                )
                 region = TextRegion(
                     region_id=uuid.uuid4(),
                     page_id=page_id,
                     type=region_data.get("type", "speech"),
-                    boundary=region_data.get("boundary", {}),
+                    boundary=boundary,
                     boundary_mode=region_data.get("boundary_mode", "rect"),
                     is_locked=region_data.get("is_locked", False),
                     sort_order=region_data.get("sort_order", 1),
+                    original_text=region_data.get("original_text"),
+                    translated_text=region_data.get("translated_text"),
+                    confidence=region_data.get("confidence"),
+                    style_config=region_data.get("style_config"),
                 )
                 self.db.add(region)
+
 
         await self.db.flush()
 
@@ -556,6 +612,10 @@ class PageService:
 
         await self.db.flush()
         logger.info(f"upload_archive: {len(pages_created)} pages flushed to DB, awaiting commit")
+
+        # 若项目尚无封面，使用压缩包/PDF 的第一张页面作为作品封面
+        if pages_created:
+            await self._set_project_cover_if_missing(chapter_id, pages_created[0])
 
         await self.db.commit()
         logger.info(f"upload_archive: transaction committed — {len(pages_created)} pages persisted")

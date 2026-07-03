@@ -22,6 +22,9 @@ from common.models.project import Project
 from common.models.vocabulary import Vocabulary
 from common.models.v3_models import LearningProgress, Achievement, UserAchievement
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 @router.get("/search")
@@ -94,39 +97,56 @@ async def search_across_works(
 
 @router.get("/learn/progress")
 async def get_learning_progress(
+    language: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get user's learning progress summary."""
-    total_vocab = (await db.execute(select(func.count(Vocabulary.vocab_id)).where(Vocabulary.user_id == current_user["sub"]))).scalar()
-    progress = (await db.execute(
-        select(LearningProgress).where(LearningProgress.user_id == current_user["sub"])
-    )).scalars().all()
+    """Get user's learning progress items (for learn page word list)."""
+    user_id = current_user["sub"]
 
-    due_review = [p for p in progress if p.next_review_at and p.next_review_at <= func.now()]
-    mastered = sum(1 for p in progress if p.mastery_level >= 4)
+    # Query vocab → learning_progress join
+    query = (
+        select(Vocabulary, LearningProgress)
+        .join(LearningProgress, Vocabulary.vocab_id == LearningProgress.vocab_id, isouter=False)
+        .where(Vocabulary.user_id == user_id)
+    )
+    if language:
+        query = query.where(Vocabulary.language == language)
+    query = query.order_by(LearningProgress.next_review_at.asc().nullslast())
 
-    achievements = (await db.execute(
-        select(UserAchievement, Achievement)
-        .join(Achievement, UserAchievement.achievement_id == Achievement.achievement_id)
-        .where(UserAchievement.user_id == current_user["sub"])
-    )).all()
+    rows = (await db.execute(query)).all()
 
-    return success_response(data={
-        "total_vocab": total_vocab,
-        "in_progress": len(progress),
-        "mastered": mastered,
-        "due_review": len(due_review),
-        "max_streak": max((p.streak_days or 0 for p in progress), default=0),
-        "achievements": [{
-            "name": a.name,
-            "description": a.description,
-            "category": a.category,
-            "progress": ua.progress,
-            "unlocked": ua.unlocked_at is not None,
-            "unlocked_at": ua.unlocked_at.isoformat() if ua.unlocked_at else None,
-        } for ua, a in achievements],
-    })
+    # Fallback: if no items for the specified language, return all languages
+    if not rows and language:
+        all_query = (
+            select(Vocabulary, LearningProgress)
+            .join(LearningProgress, Vocabulary.vocab_id == LearningProgress.vocab_id, isouter=False)
+            .where(Vocabulary.user_id == user_id)
+            .order_by(LearningProgress.next_review_at.asc().nullslast())
+        )
+        rows = (await db.execute(all_query)).all()
+
+    items = []
+    for vocab, lp in rows:
+        # Parse definition field (format: reading\nmeaning or just word)
+        definition = vocab.definition or ""
+        meaning = definition
+        if "\n" in definition:
+            meaning = definition.split("\n", 1)[1]
+        items.append({
+            "progress_id": str(lp.progress_id),
+            "vocab_id": str(vocab.vocab_id),
+            "word": vocab.word,
+            "language": vocab.language,
+            "meaning": meaning,
+            "mastery_level": lp.mastery_level or 1,
+            "review_count": lp.review_count or 0,
+            "next_review_at": lp.next_review_at.isoformat() if lp.next_review_at else None,
+            "last_reviewed_at": lp.last_review_at.isoformat() if lp.last_review_at else None,
+            "created_at": vocab.created_at.isoformat() if vocab.created_at else None,
+        })
+
+    return success_response(data={"items": items, "total": len(items)})
 
 @router.get("/learn/achievements")
 async def list_achievements(
@@ -139,52 +159,116 @@ async def list_achievements(
         select(UserAchievement).where(UserAchievement.user_id == current_user["sub"])
     )).scalars().all()}
 
+    def _build_achievement_item(a):
+        ua = user_achievements.get(str(a.achievement_id))
+        return {
+            "user_achievement_id": str(ua.user_achievement_id) if ua else str(uuid.uuid4()),
+            "achievement": {
+                "achievement_id": str(a.achievement_id),
+                "name": a.name,
+                "description": a.description or "",
+                "icon": a.icon_url or "",
+                "category": a.category,
+                "condition_type": a.category,
+                "condition_value": a.required_value,
+            },
+            "progress": ua.progress if ua else 0,
+            "completed": (ua.unlocked_at is not None) if ua else False,
+            "completed_at": ua.unlocked_at.isoformat() if (ua and ua.unlocked_at) else None,
+        }
+
     return success_response(data={
-        "achievements": [{
-            "achievement_id": str(a.achievement_id),
-            "name": a.name,
-            "description": a.description,
-            "category": a.category,
-            "required_value": a.required_value,
-            "progress": user_achievements.get(str(a.achievement_id), None),
-        } for a in all_achievements],
+        "items": [_build_achievement_item(a) for a in all_achievements],
     })
 
 @router.get("/learn/review")
 async def get_review_list(
+    language: Optional[str] = Query(None),
+    count: int = Query(10, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get vocabulary items due for review (Ebbinghaus schedule)."""
-    from datetime import datetime
-    now = datetime.utcnow()
+    """Get vocabulary items due for review (Ebbinghaus schedule).
 
-    progress_list = (await db.execute(
-        select(LearningProgress).where(
+    §3.1: 如果没有到期的（due）词，回退返回该语言下 mastery_level 最低的 N 条
+    新词，让用户始终能开始复习（避免空列表导致的"无响应"体验）。
+    如果指定语言没有词汇，则回退到所有语言。
+    """
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    # First try: items where next_review_at has passed
+    query = (
+        select(LearningProgress, Vocabulary)
+        .join(Vocabulary, LearningProgress.vocab_id == Vocabulary.vocab_id)
+        .where(
             LearningProgress.user_id == current_user["sub"],
             LearningProgress.next_review_at <= now,
-        ).order_by(LearningProgress.next_review_at.asc())
-    )).scalars().all()
+        )
+    )
+    if language:
+        query = query.where(Vocabulary.language == language)
+    query = query.order_by(LearningProgress.next_review_at.asc())
+
+    rows = (await db.execute(query)).all()
+    logger.info(f"getReview first try: {len(rows)} rows for user={current_user['sub']}, lang={language}")
+
+    # Fallback 1: 没有 due 的词时，返回该语言下 mastery_level 最低的 N 条
+    if not rows and language:
+        fallback_query = (
+            select(LearningProgress, Vocabulary)
+            .join(Vocabulary, LearningProgress.vocab_id == Vocabulary.vocab_id)
+            .where(LearningProgress.user_id == current_user["sub"])
+            .where(Vocabulary.language == language)
+            .order_by(
+                LearningProgress.mastery_level.asc(),
+                LearningProgress.next_review_at.asc().nulls_first(),
+            )
+        )
+        rows = (await db.execute(fallback_query.limit(count))).all()
+        logger.info(f"getReview fallback (language={language}): {len(rows)} rows")
+
+    # Fallback 2: 如果指定语言没有词汇，返回所有语言下 mastery_level 最低的 N 条
+    if not rows:
+        all_lang_query = (
+            select(LearningProgress, Vocabulary)
+            .join(Vocabulary, LearningProgress.vocab_id == Vocabulary.vocab_id)
+            .where(LearningProgress.user_id == current_user["sub"])
+            .order_by(
+                LearningProgress.mastery_level.asc(),
+                LearningProgress.next_review_at.asc().nulls_first(),
+            )
+        )
+        rows = (await db.execute(all_lang_query.limit(count))).all()
+        logger.info(f"getReview fallback (all languages): {len(rows)} rows")
 
     items = []
-    for p in progress_list:
-        vocab = (await db.execute(
-            select(Vocabulary).where(Vocabulary.vocab_id == p.vocab_id)
-        )).scalar_one_or_none()
+    for lp, vocab in rows:
+        # Parse definition field (format: reading\nmeaning or just word)
+        definition = vocab.definition or ""
+        reading = ""
+        meaning = definition
+        if "\n" in definition:
+            parts = definition.split("\n", 1)
+            reading = parts[0]
+            meaning = parts[1] if len(parts) > 1 else definition
+
         items.append({
-            "progress_id": str(p.progress_id),
-            "vocab_id": str(p.vocab_id) if p.vocab_id else None,
-            "word": vocab.word if vocab else None,
-            "reading": vocab.reading if vocab else None,
-            "meaning": vocab.meaning if vocab else None,
-            "part_of_speech": vocab.part_of_speech if vocab else None,
-            "mastery_level": p.mastery_level,
-            "review_count": p.review_count,
-            "last_review_at": p.last_review_at.isoformat() if p.last_review_at else None,
-            "next_review_at": p.next_review_at.isoformat() if p.next_review_at else None,
-            "streak_days": p.streak_days,
+            "progress_id": str(lp.progress_id),
+            "vocab_id": str(lp.vocab_id) if lp.vocab_id else None,
+            "word": vocab.word,
+            "reading": reading,
+            "meaning": meaning,
+            "translation": meaning,
+            "part_of_speech": vocab.part_of_speech,
+            "mastery_level": lp.mastery_level or 1,
+            "review_count": lp.review_count or 0,
+            "last_review_at": lp.last_review_at.isoformat() if lp.last_review_at else None,
+            "next_review_at": lp.next_review_at.isoformat() if lp.next_review_at else None,
+            "streak_days": lp.streak_days or 0,
         })
 
+    logger.info(f"getReview returning {len(items)} items")
     return success_response(data={"items": items, "total": len(items)})
 
 @router.put("/learn/progress/{progress_id}")
@@ -194,7 +278,12 @@ async def update_learning_progress(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Update learning progress: mastery level, notes, streak, etc."""
+    """Update learning progress: mastery level, notes, streak, etc.
+    
+    When mastery_level is updated, also updates the Ebbinghaus schedule (next_review_at, last_review_at).
+    """
+    from datetime import datetime, timedelta
+    
     progress = (await db.execute(
         select(LearningProgress).where(
             LearningProgress.progress_id == progress_id,
@@ -209,14 +298,37 @@ async def update_learning_progress(
     for field in updatable_fields:
         if field in body:
             setattr(progress, field, body[field])
+    
+    # Update Ebbinghaus schedule when mastery_level is changed
+    if "mastery_level" in body:
+        now = datetime.utcnow()
+        intervals = [1, 2, 4, 7, 15]  # Ebbinghaus intervals in days
+        
+        progress.last_review_at = now
+        progress.review_count = (progress.review_count or 0) + 1
+        interval_idx = min(progress.review_count - 1, len(intervals) - 1)
+        progress.next_review_at = now + timedelta(days=intervals[interval_idx])
+        progress.streak_days = (progress.streak_days or 0) + 1
 
     await db.flush()
+    
+    # Check and unlock achievements on review
+    if "mastery_level" in body:
+        try:
+            uid = uuid.UUID(current_user["sub"])
+            from common.utils.achievement_checker import check_and_unlock_achievements
+            await check_and_unlock_achievements(db, uid)
+        except Exception as e:
+            logger.debug(f"[Achievement] check skipped in update_progress: {e}")
+    
     return success_response(data={
         "progress_id": str(progress.progress_id),
         "vocab_id": str(progress.vocab_id) if progress.vocab_id else None,
         "mastery_level": progress.mastery_level,
         "review_count": progress.review_count,
         "streak_days": progress.streak_days,
+        "next_review_at": progress.next_review_at.isoformat() if progress.next_review_at else None,
+        "last_review_at": progress.last_review_at.isoformat() if progress.last_review_at else None,
     })
 
 @router.post("/learn/review/{vocab_id}")
@@ -284,14 +396,16 @@ async def get_word_stats(
     learning = sum(1 for p in progress_list if p.mastery_level and 1 <= p.mastery_level < 4)
     new_words = total_words - len(progress_list)
 
-    from datetime import datetime
-    now = datetime.utcnow()
+    from datetime import datetime, timezone
+    # 用 timezone-aware datetime 与 DB 中的 TIMESTAMPTZ 字段比较
+    now = datetime.now(timezone.utc)
     due_review = sum(1 for p in progress_list if p.next_review_at and p.next_review_at <= now)
 
     return success_response(data={
         "total_words": total_words,
         "mastered": mastered,
         "learning": learning,
+        "reviewing": learning,  # alias for frontend
         "new_words": new_words,
         "due_review": due_review,
     })

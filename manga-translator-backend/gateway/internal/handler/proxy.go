@@ -9,7 +9,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -28,45 +27,13 @@ var sharedTransport = &http.Transport{
 }
 
 // ProxyHandler handles reverse proxying to microservices.
-// ReverseProxy instances are cached per service name and reused across requests.
 type ProxyHandler struct {
 	discovery *service.Discovery
-	mu        sync.RWMutex
-	proxies   map[string]*httputil.ReverseProxy
 }
 
 // NewProxyHandler creates a new proxy handler
 func NewProxyHandler(discovery *service.Discovery) *ProxyHandler {
-	return &ProxyHandler{
-		discovery: discovery,
-		proxies:   make(map[string]*httputil.ReverseProxy),
-	}
-}
-
-// getOrCreateProxy returns a cached ReverseProxy for the given service,
-// creating one if it doesn't exist yet.
-func (h *ProxyHandler) getOrCreateProxy(serviceName string, target *url.URL) *httputil.ReverseProxy {
-	h.mu.RLock()
-	proxy, ok := h.proxies[serviceName]
-	h.mu.RUnlock()
-	if ok {
-		return proxy
-	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	// Double-check after acquiring write lock
-	if proxy, ok = h.proxies[serviceName]; ok {
-		return proxy
-	}
-
-	proxy = &httputil.ReverseProxy{
-		Director:  func(req *http.Request) {},
-		Transport: sharedTransport,
-	}
-	h.proxies[serviceName] = proxy
-	return proxy
+	return &ProxyHandler{discovery: discovery}
 }
 
 // ProxyToService returns a handler that reverse-proxies to the named service.
@@ -98,60 +65,58 @@ func (h *ProxyHandler) ProxyToService(serviceName string) gin.HandlerFunc {
 			return
 		}
 
-		proxy := h.getOrCreateProxy(serviceName, target)
+		// Each request gets its own ReverseProxy instance. Reusing a shared
+		// ReverseProxy and mutating its Director/ModifyResponse closures across
+		// goroutines leads to "concurrent map writes" crashes because one request's
+		// ServeHTTP may execute another request's closure, both writing to the
+		// same gin Context's response header map.
+		proxy := &httputil.ReverseProxy{
+			Transport: sharedTransport,
+			Director: func(req *http.Request) {
+				req.URL.Scheme = target.Scheme
+				req.URL.Host = target.Host
+				req.URL.Path = c.Request.URL.Path
+				req.URL.RawQuery = c.Request.URL.RawQuery
+				req.Host = target.Host
 
-		// Per-request Director: capture gin.Context to rewrite the outgoing request
-		originalDirector := proxy.Director
-		proxy.Director = func(req *http.Request) {
-			req.URL.Scheme = target.Scheme
-			req.URL.Host = target.Host
-			req.URL.Path = c.Request.URL.Path
-			req.URL.RawQuery = c.Request.URL.RawQuery
-			req.Host = target.Host
+				if userID, exists := c.Get("user_id"); exists {
+					req.Header.Set("X-User-ID", userID.(string))
+				}
+				if planType, exists := c.Get("plan_type"); exists {
+					req.Header.Set("X-Plan-Type", planType.(string))
+				}
 
-			if userID, exists := c.Get("user_id"); exists {
-				req.Header.Set("X-User-ID", userID.(string))
-			}
-			if planType, exists := c.Get("plan_type"); exists {
-				req.Header.Set("X-Plan-Type", planType.(string))
-			}
-
-			requestID := c.GetHeader("X-Request-ID")
-			if requestID == "" {
-				requestID = uuid.New().String()
-			}
-			req.Header.Set("X-Request-ID", requestID)
-			c.Header("X-Request-ID", requestID)
-
-			if originalDirector != nil {
-				originalDirector(req)
-			}
-		}
-
-		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-			log.Printf("[PROXY] %s %s → %s  error=%v", c.Request.Method, c.Request.URL.Path, serviceName, err)
-			msg := `{"code":5001,"message":"Upstream service unavailable","data":null}`
-			if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline") {
-				msg = `{"code":5001,"message":"后端服务响应超时，请稍后重试","data":null}`
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte(msg))
-		}
-
-		proxy.ModifyResponse = func(resp *http.Response) error {
-			if resp.StatusCode == http.StatusSwitchingProtocols {
+				requestID := c.GetHeader("X-Request-ID")
+				if requestID == "" {
+					requestID = uuid.New().String()
+				}
+				req.Header.Set("X-Request-ID", requestID)
+				c.Header("X-Request-ID", requestID)
+			},
+			ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+				log.Printf("[PROXY] %s %s → %s  error=%v", c.Request.Method, c.Request.URL.Path, serviceName, err)
+				msg := `{"code":5001,"message":"Upstream service unavailable","data":null}`
+				if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline") {
+					msg = `{"code":5001,"message":"后端服务响应超时，请稍后重试","data":null}`
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadGateway)
+				w.Write([]byte(msg))
+			},
+			ModifyResponse: func(resp *http.Response) error {
+				if resp.StatusCode == http.StatusSwitchingProtocols {
+					return nil
+				}
+				resp.Header.Del("Access-Control-Allow-Origin")
+				resp.Header.Del("Access-Control-Allow-Methods")
+				resp.Header.Del("Access-Control-Allow-Headers")
+				resp.Header.Del("Access-Control-Expose-Headers")
+				resp.Header.Del("Access-Control-Max-Age")
+				resp.Header.Del("Access-Control-Allow-Credentials")
+				resp.Header.Set("X-Request-ID", c.GetHeader("X-Request-ID"))
+				resp.Header.Set("X-Gateway-Timestamp", time.Now().UTC().Format(time.RFC3339))
 				return nil
-			}
-			resp.Header.Del("Access-Control-Allow-Origin")
-			resp.Header.Del("Access-Control-Allow-Methods")
-			resp.Header.Del("Access-Control-Allow-Headers")
-			resp.Header.Del("Access-Control-Expose-Headers")
-			resp.Header.Del("Access-Control-Max-Age")
-			resp.Header.Del("Access-Control-Allow-Credentials")
-			resp.Header.Set("X-Request-ID", c.GetHeader("X-Request-ID"))
-			resp.Header.Set("X-Gateway-Timestamp", time.Now().UTC().Format(time.RFC3339))
-			return nil
+			},
 		}
 
 		start := time.Now()

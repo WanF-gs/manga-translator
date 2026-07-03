@@ -42,25 +42,61 @@ FONT_CACHE_DIR = os.getenv("FONT_CACHE_DIR", "/tmp/manga-font-cache")
 
 # 系统/内置字体搜索路径（与 render_service 保持一致 + 追加后端根 fonts 目录）
 _SVC_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# _SVC_ROOT = services/，但 fonts/ 在 mang-translator-backend/fonts/（services 的父目录）
+_BACKEND_ROOT = os.path.dirname(_SVC_ROOT)  # manga-translator-backend/
 FONT_SEARCH_PATHS = [
     os.getenv("FONT_DIR", "/app/fonts"),
-    os.path.join(_SVC_ROOT, "fonts"),          # manga-translator-backend/fonts
-    os.path.join(_SVC_ROOT, "services", "fonts"),
+    os.path.join(_BACKEND_ROOT, "fonts"),       # manga-translator-backend/fonts
+    os.path.join(_SVC_ROOT, "fonts"),           # services/fonts (兜底)
     "/usr/share/fonts",
     "/usr/local/share/fonts",
+    "/usr/share/fonts/truetype/noto",
+    "/usr/share/fonts/opentype/noto",
     "C:/Windows/Fonts",
 ]
 
 # 内置字体逻辑名 → 实际文件名候选（seed 数据里用逻辑名，这里做落地映射）
 BUILTIN_FONT_FILES = {
+    # 标准对话（无衬线，高可读性）
     "系统默认对话字体": ["NotoSansSC-Regular.otf", "NotoSansSC-VF.ttf", "msyh.ttc", "simsun.ttc"],
-    "旁白标准字体": ["NotoSansSC-Regular.otf", "simsun.ttc"],
+    # 热血/力量风格
     "热血漫风格字体": ["NotoSansSC-Bold.otf", "msyhbd.ttc", "NotoSansSC-Regular.otf"],
-    "少女漫风格字体": ["NotoSansSC-Regular.otf", "simkai.ttf"],
-    "拟声词特效字体": ["NotoSansSC-Bold.otf", "msyhbd.ttc"],
-    "手写风格字体": ["simkai.ttf", "NotoSansSC-Regular.otf"],
-    "恐怖漫氛围字体": ["NotoSansSC-Bold.otf", "simhei.ttf"],
-    "标题装饰字体": ["NotoSansSC-Bold.otf", "msyhbd.ttc"],
+    # 少女/温馨/柔软风格（霞鹜文楷）
+    "少女漫风格字体": ["LXGWWenKai-Regular.ttf", "NotoSansSC-Regular.otf"],
+    # 旁白（清晰正文/楷体）
+    "旁白标准字体": ["LXGWWenKai-Regular.ttf", "NotoSansSC-Regular.otf", "simsun.ttc"],
+    # 拟声词/效果字（粗体冲击）
+    "拟声词特效字体": ["NotoSansSC-Bold.otf", "msyhbd.ttc", "NotoSansSC-Regular.otf"],
+    # 手写/随性风格
+    "手写风格字体": ["LXGWWenKai-Regular.ttf", "NotoSansSC-Regular.otf"],
+    # 恐怖/悬疑（粗体压抑）
+    "恐怖漫氛围字体": ["NotoSansSC-Bold.otf", "simhei.ttf", "NotoSansSC-Regular.otf"],
+    # 标题装饰（粗体/display）
+    "标题装饰字体": ["NotoSansSC-Bold.otf", "msyhbd.ttc", "NotoSansSC-VF.ttf"],
+    # 日语专用
+    "日语默认字体": ["NotoSansJP-Regular.otf", "NotoSansSC-Regular.otf", "NotoSansCJK-Regular.ttc"],
+    "日语粗体": ["NotoSansJP-Bold.otf", "NotoSansSC-Bold.otf", "NotoSansCJK-Bold.ttc"],
+    # 韩语专用
+    "韩语默认字体": ["NotoSansKR-Regular.otf", "NotoSansCJK-Regular.ttc", "NotoSansSC-Regular.otf"],
+    "韩语粗体": ["NotoSansKR-Bold.otf", "NotoSansCJK-Bold.ttc", "NotoSansSC-Bold.otf"],
+    # 前端属性面板/样式预设使用的别名（与 FONT_OPTIONS value 对齐）
+    "内置漫画对话体": ["NotoSansSC-Regular.otf", "NotoSansSC-VF.ttf", "msyh.ttc", "simsun.ttc"],
+    "内置漫画旁白体": ["LXGWWenKai-Regular.ttf", "NotoSansSC-Regular.otf", "simsun.ttc"],
+    "内置拟声词样式": ["NotoSansSC-Bold.otf", "msyhbd.ttc", "NotoSansSC-Regular.otf"],
+    "Noto Sans SC": ["NotoSansSC-Regular.otf", "NotoSansSC-VF.ttf"],
+    "LXGW WenKai": ["LXGWWenKai-Regular.ttf", "LXGW WenKai.ttf", "LXGWWenKai.ttf"],
+    "Noto Sans JP": ["NotoSansJP-Regular.otf", "NotoSansSC-Regular.otf"],
+    "Noto Sans KR": ["NotoSansKR-Regular.otf", "NotoSansCJK-Regular.ttc", "NotoSansSC-Regular.otf"],
+    "Malgun Gothic": ["malgun.ttf", "malgunbd.ttf", "NotoSansKR-Regular.otf"],
+    # 漫画专用字体（对标 manga-translator-ui）
+    "Anime Ace": ["anime_ace.ttf", "anime_ace_3.ttf"],
+    "Anime Ace v3": ["anime_ace_3.ttf", "anime_ace.ttf"],
+    "Comic Shanns 2": ["comic shanns 2.ttf"],
+    "MS Gothic": ["msgothic.ttc", "msgothic.ttf", "NotoSansJP-Regular.otf"],
+    # 种子数据逻辑名映射
+    "动漫英文粗体": ["anime_ace.ttf", "anime_ace_3.ttf", "NotoSansSC-Bold.otf"],
+    "漫画手写英文": ["comic shanns 2.ttf", "LXGWWenKai-Regular.ttf"],
+    "日文哥特体": ["msgothic.ttc", "NotoSansJP-Bold.otf", "NotoSansJP-Regular.otf"],
 }
 
 _path_cache: dict = {}

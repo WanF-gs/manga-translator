@@ -147,8 +147,17 @@ class MultimodalEngine(TranslationEngine):
         # P1-B: 角色档案 → 语气指令（真实 Character 字段渲染）
         character_instruction = build_character_tone_instruction(context.get("character_profile"))
 
-        # Strategy 1: PBP-VIS — full page context (best quality, used when all texts available)
-        if image_url and all_page_texts and len(all_page_texts) > 1:
+        # 检测是否为豆包/火山方舟模型（不支持 json_object，跳过 PBP-VIS 和 Vision）
+        from common.core.config import settings
+        model_name = getattr(settings, 'OPENAI_MODEL', '')
+        api_base = getattr(settings, 'OPENAI_API_BASE', '')
+        is_ark_model = (
+            any(kw in model_name.lower() for kw in ['seed', 'doubao', 'ep-']) or
+            'volces.com' in api_base.lower()
+        )
+
+        # Strategy 1: PBP-VIS — full page context（豆包/火山模型跳过，不支持 json_object）
+        if not is_ark_model and image_url and all_page_texts and len(all_page_texts) > 1:
             result = await self._translate_pbpvis(
                 text, all_page_texts, source_lang, target_lang,
                 image_url, character_tone, region_type, term_glossary,
@@ -157,8 +166,8 @@ class MultimodalEngine(TranslationEngine):
             if result:
                 return self._enforce_terms(result, term_glossary)
 
-        # Strategy 2: GPT-4o Vision single text with image
-        if image_url:
+        # Strategy 2: GPT-4o Vision single text with image（豆包/火山模型跳过，太慢）
+        if not is_ark_model and image_url:
             result = await self._translate_vision(
                 text, source_lang, target_lang,
                 image_url, character_tone, region_type, term_glossary,
@@ -167,7 +176,7 @@ class MultimodalEngine(TranslationEngine):
             if result:
                 return self._enforce_terms(result, term_glossary)
 
-        # Strategy 3: Text-only LLM
+        # Strategy 3: Text-only LLM（所有模型通用）
         text_llm_result = await self._translate_text_llm(
             text, source_lang, target_lang, character_tone, region_type, term_glossary,
             character_instruction,
@@ -219,6 +228,9 @@ class MultimodalEngine(TranslationEngine):
         source_name = lang_names.get(source_lang, source_lang)
         target_name = lang_names.get(target_lang, target_lang)
 
+        # Determine if target language is Chinese-family (for output language enforcement)
+        is_target_chinese = target_lang in ("zh", "zh-CN", "zh-TW")
+
         # Build numbered text list
         numbered = {}
         target_idx = None
@@ -238,6 +250,14 @@ class MultimodalEngine(TranslationEngine):
             entries = [f"  {k} → {v}" for k, v in list(term_glossary.items())[:10]]
             glossary_hint = "\n术语表（请严格使用以下翻译）：\n" + "\n".join(entries)
 
+        # Output language enforcement for non-Chinese targets
+        output_lang_rule = ""
+        if not is_target_chinese:
+            output_lang_rule = (
+                f"\n【输出语言强制规则】你必须用{target_name}输出所有翻译结果。"
+                f"JSON 的 value 字段必须是纯{target_name}文本，不允许包含任何中文解释、括号、引号或标注。"
+            )
+
         system_prompt = (
             f"你是一个专业的漫画翻译专家。请根据漫画页面的视觉上下文（人物表情、场景氛围、"
             f"角色位置关系），将以下编号的{source_name}文字翻译成{target_name}。\n\n"
@@ -247,8 +267,9 @@ class MultimodalEngine(TranslationEngine):
             f"3. 拟声词使用{target_name}对应的表达\n"
             f"4. 译文简短自然，适合在漫画气泡中显示\n"
             f"5. 不要编造编号中没有的文字\n"
-            f"{('6. ' + character_instruction) if character_instruction else ''}\n"
-            f"{glossary_hint}\n"
+            f"{('6. ' + character_instruction) if character_instruction else ''}"
+            f"{glossary_hint}"
+            f"{output_lang_rule}\n"
             f"请以JSON格式返回所有翻译："
             f'{{"1": "译文1", "2": "译文2", ...}}'
         )
@@ -367,6 +388,9 @@ class MultimodalEngine(TranslationEngine):
         source_name = lang_names.get(source_lang, source_lang)
         target_name = lang_names.get(target_lang, target_lang)
 
+        # Determine if target language is Chinese-family
+        is_target_chinese = target_lang in ("zh", "zh-CN", "zh-TW")
+
         # Build glossary hint if available
         glossary_hint = ""
         if term_glossary:
@@ -385,6 +409,14 @@ class MultimodalEngine(TranslationEngine):
         }
         tone_desc = tone_instructions.get(tone, "自然的语气")
 
+        # Output language enforcement for non-Chinese targets
+        output_lang_rule = ""
+        if not is_target_chinese:
+            output_lang_rule = (
+                f"\n【输出语言强制规则】你必须用{target_name}输出翻译结果。"
+                f"只返回纯{target_name}文本，不允许包含中文或任何其他语言的解释、标注、引号。"
+            )
+
         system_prompt = (
             f"你是一个专业的漫画翻译助手。请将以下漫画中的{source_name}文字翻译成{target_name}。\n"
             f"翻译要求：\n"
@@ -395,6 +427,7 @@ class MultimodalEngine(TranslationEngine):
             f"5. 只返回翻译后的文本，不要添加解释或引号\n"
             f"{('6. ' + character_instruction + chr(10)) if character_instruction else ''}"
             f"{glossary_hint}"
+            f"{output_lang_rule}"
         )
 
         # ... rest of vision method remains the same ...
@@ -489,6 +522,17 @@ class MultimodalEngine(TranslationEngine):
         source_name = lang_names.get(source_lang, source_lang)
         target_name = lang_names.get(target_lang, target_lang)
 
+        # Determine if target language is Chinese-family
+        is_target_chinese = target_lang in ("zh", "zh-CN", "zh-TW")
+
+        # Also detect ark model here for timeout decision
+        model_name = getattr(settings, 'OPENAI_MODEL', '')
+        api_base = getattr(settings, 'OPENAI_API_BASE', '')
+        is_ark_model = (
+            any(kw in model_name.lower() for kw in ['seed', 'doubao', 'ep-']) or
+            'volces.com' in api_base.lower()
+        )
+
         # Build glossary hint
         glossary_hint = ""
         if term_glossary:
@@ -513,6 +557,14 @@ class MultimodalEngine(TranslationEngine):
         }
         type_guide = region_type_guidance.get(region_type, "")
 
+        # Output language enforcement for non-Chinese targets
+        output_lang_rule = ""
+        if not is_target_chinese:
+            output_lang_rule = (
+                f"\n【输出语言强制规则】你必须用{target_name}输出翻译结果。"
+                f"只返回纯{target_name}文本，不允许包含中文或任何其他语言的解释、标注、引号。"
+            )
+
         system_prompt = (
             f"你是一个专业的漫画翻译专家，精通{source_name}和{target_name}。\n\n"
             f"翻译要求：\n"
@@ -522,34 +574,46 @@ class MultimodalEngine(TranslationEngine):
             f"4. 根据目标语言{target_name}的习惯处理标点符号\n"
             f"5. 只返回翻译后的文本，不要添加引号、括号、解释或标注"
             f"{(chr(10) + '6. ' + character_instruction) if character_instruction else ''}"
+            f"{output_lang_rule}"
         )
 
         try:
             # Use configured model (DeepSeek/GPT-4o) for text translation
             text_model = getattr(settings, 'OPENAI_TEXT_MODEL', None) or settings.OPENAI_MODEL
+            # 豆包/火山模型需要更长响应时间，普通模型用较短超时
+            is_reasoning = is_ark_model
+            _read_timeout = 90 if is_reasoning else 25
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"请翻译以下漫画{source_name}文字为{target_name}：\n{text}"},
             ]
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=5, read=25, write=5, pool=5)
+                timeout=httpx.Timeout(connect=5, read=_read_timeout, write=5, pool=5)
             ) as client:
+                # 火山方舟推理模型：禁用深度思考节省时间
+                request_body = {
+                    "model": text_model,
+                    "messages": messages,
+                    "max_tokens": 200 if is_reasoning else 400,
+                    "temperature": 0.3,
+                }
+                if is_reasoning:
+                    request_body["thinking"] = {"type": "disabled"}
                 response = await client.post(
                     f"{settings.OPENAI_API_BASE}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {api_key}",
                         "Content-Type": "application/json",
                     },
-                    json={
-                        "model": text_model,
-                        "messages": messages,
-                        "max_tokens": 400,
-                        "temperature": 0.3,
-                    },
+                    json=request_body,
                 )
                 if response.status_code == 200:
                     data = response.json()
-                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    msg = data.get("choices", [{}])[0].get("message", {})
+                    content = msg.get("content", "")
+                    # 推理模型可能把答案放在 reasoning_content 里
+                    if not content:
+                        content = msg.get("reasoning_content", "")
                     if content:
                         result = content.strip().strip('"').strip("'").strip("「」")
                         logger.debug(f"Text LLM [{text_model}] translated: '{text[:30]}...' → '{result[:30]}...'")

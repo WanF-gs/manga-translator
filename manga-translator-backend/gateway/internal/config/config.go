@@ -149,6 +149,7 @@ func Load() *Config {
 				"/storage/",           // 静态文件存储路径（浏览器 img 标签请求无 Auth header）
 				"/uploads/",           // 处理后图片存储路径（inpaint/render 回退）
 				"/api/v1/external/",    // 开放平台外部 API（由 user-service 的 API Key 依赖鉴权，非 JWT）
+				"/api/v1/fonts/file/",  // 字体文件二进制流（@font-face 直接加载，浏览器不附加 Authorization）
 			},
 		},
 		Services: ServicesConfig{

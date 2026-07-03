@@ -2,6 +2,7 @@ from __future__ import annotations
 """
 Translation API routes.
 """
+import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,7 @@ from common.core.security import get_current_user
 
 from ..service.translation_service import TranslationService
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -58,14 +60,59 @@ async def translate_page(
             logging.getLogger(__name__).debug(f"Character profile lookup skipped: {e}")
 
     try:
+        requested_target_lang = request_data.get("target_lang", "zh-CN")
+        logger.info(f"[translate] page_id={page_id}, target_lang={requested_target_lang}, engine={request_data.get('engine', 'auto')}")
+        if requested_target_lang == "zh-CN":
+            logger.warning(f"[translate] target_lang is zh-CN (可能是默认值或用户选择), 请确认: request_data keys={list(request_data.keys())}")
         result = await service.translate_page(
             page_id=page_id,
-            target_lang=request_data.get("target_lang", "zh-CN"),
+            target_lang=requested_target_lang,
             engine=request_data.get("engine", "auto"),
             onomatopoeia_mode=request_data.get("onomatopoeia_mode", "keep_annotation"),
             culture_strategy=request_data.get("culture_strategy", "localize"),
             character_profile=character_profile,
         )
+
+        # §3.0 词汇自动收集：同步翻译路径也提取生词
+        # 之前的实现只在 Celery 流水线（run_pipeline_for_page）中调用，
+        # 导致"逐页同步翻译"流程的页面从未写入 vocabularies，学习中心始终 0 词汇。
+        try:
+            from common.models.page import Page
+            from sqlalchemy import select as sa_select
+            page_row = (await db.execute(
+                sa_select(Page).where(Page.page_id == page_id)
+            )).scalar_one_or_none()
+            if page_row:
+                # 通过 chapter 获取 project 的 source_lang
+                from common.models.chapter import Chapter
+                from common.models.project import Project
+                ch = (await db.execute(
+                    sa_select(Chapter).where(Chapter.chapter_id == page_row.chapter_id)
+                )).scalar_one_or_none()
+                project_source_lang = "ja"
+                if ch:
+                    proj = (await db.execute(
+                        sa_select(Project).where(Project.project_id == ch.project_id)
+                    )).scalar_one_or_none()
+                    if proj and proj.source_lang:
+                        project_source_lang = proj.source_lang
+
+                user_id = current_user.get("sub") if isinstance(current_user, dict) else None
+                if user_id:
+                    from common.tasks.vocab_extractor import extract_vocabulary_from_page
+                    new_count = await extract_vocabulary_from_page(
+                        db=db,
+                        page_id=page_id,
+                        user_id=user_id,
+                        source_lang=project_source_lang,
+                    )
+                    if new_count > 0:
+                        logger.info(f"[translate] VocabExtract: page={page_id} +{new_count} new words")
+                    # 提交词汇写入（独立事务，不影响翻译结果回滚）
+                    await db.commit()
+        except Exception as vocab_err:
+            logger.warning(f"[translate] VocabExtract failed (non-fatal): {vocab_err}", exc_info=True)
+
         return success_response(data=result)
     except Exception as e:
         import traceback

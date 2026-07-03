@@ -30,6 +30,7 @@ PUBLIC_PATH_PREFIXES = [
     "/storage/",  # 静态文件存储路径（用户上传原图）
     "/uploads/",  # 处理后图片路径（inpaint、render 等结果图，供 <img> 标签加载）
     "/api/v1/external/",  # 开放平台外部 API：由 API Key 依赖鉴权，跳过 JWT 中间件
+    "/api/v1/fonts/file/",  # 字体文件二进制流（被 <img>/@font-face 直接加载，浏览器不会带 Authorization 头）
 ]
 
 

@@ -46,18 +46,26 @@ FONT_SEARCH_PATHS = [
     settings.FONT_DIR,
     "/usr/share/fonts",
     "/usr/local/share/fonts",
+    "/usr/share/fonts/truetype/noto",
+    "/usr/share/fonts/opentype/noto",
     os.path.join(os.path.dirname(__file__), "fonts"),
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "fonts"),
+    # 从 image_service/service/ 向上 4 层到 manga-translator-backend/，再进 fonts/
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "fonts"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "fonts"),  # services/fonts (兜底)
     "C:/Windows/Fonts",
 ]
 
 CJK_FONT_CANDIDATES = [
     "NotoSansSC-Regular.otf", "NotoSansSC-VF.ttf", "NotoSansSC-Bold.otf",
     "SourceHanSansSC-Regular.otf", "SourceHanSansSC-Regular.ttf",
-    "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf", "NotoSansKR-Regular.otf",
+    "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf", "NotoSansJP-Bold.otf",
+    "NotoSansKR-Regular.otf", "NotoSansKR-Bold.otf",
+    "SourceHanSansK-Regular.otf", "SourceHanSansK-Regular.ttf",
     "simsun.ttc", "simsun.ttf", "msyh.ttc", "msyh.ttf",
     "msgothic.ttc", "AppleGothic.ttf",
     "Arial.ttf", "DejaVuSans.ttf",
+    "LXGWWenKai-Regular.ttf", "LXGWWenKai-Bold.ttf",
+    "anime_ace.ttf", "anime_ace_3.ttf", "comic shanns 2.ttf",
 ]
 
 _font_cache: dict = {}
@@ -551,9 +559,21 @@ class RenderService:
         api_h = page.height or actual_h
         coord_scale_x = actual_w / api_w if api_w > 0 else 1.0
         coord_scale_y = actual_h / api_h if api_h > 0 else 1.0
+
+        # P0 FIX: 缩放因子异常时（如 page.width/height 读取错误），避免把大量区域压到左上角重叠
+        if coord_scale_x < 0.5 or coord_scale_x > 2.0 or coord_scale_y < 0.5 or coord_scale_y > 2.0:
+            logger.warning(
+                f"Render: abnormal coordinate scale detected — api={api_w}x{api_h}, "
+                f"actual={actual_w}x{actual_h}, scale=({coord_scale_x:.3f}, {coord_scale_y:.3f}). "
+                f"Falling back to scale=1.0 to prevent overlapping regions at top-left."
+            )
+            coord_scale_x = 1.0
+            coord_scale_y = 1.0
+
         if abs(coord_scale_x - 1.0) > 0.01 or abs(coord_scale_y - 1.0) > 0.01:
             logger.info(f"Render: coordinate calibration — api={api_w}x{api_h}, actual={actual_w}x{actual_h}, "
                         f"scale=({coord_scale_x:.3f}, {coord_scale_y:.3f})")
+
 
         # 查询 DB 中的区域信息
         regions_result = await self.db.execute(
@@ -585,25 +605,64 @@ class RenderService:
         overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
         rendered_count = 0
+        skipped_count = 0
 
         for region in regions:
+
             region_id = region.get("region_id", "")
             translated_text = region.get("translated_text", "").strip()
             if not translated_text:
+                skipped_count += 1
                 continue
 
             db_region = db_regions.get(region_id)
             if not db_region or not db_region.boundary:
+                logger.warning(f"Region {region_id[:8]}: missing boundary, skipping")
+                skipped_count += 1
                 continue
+
 
             boundary = db_region.boundary
-            x = boundary.get("x", 0) * coord_scale_x
-            y = boundary.get("y", 0) * coord_scale_y
-            w = boundary.get("width", 100) * coord_scale_x
-            h = boundary.get("height", 100) * coord_scale_y
+            try:
+                raw_x = float(boundary.get("x", 0))
+                raw_y = float(boundary.get("y", 0))
+                raw_w = float(boundary.get("width", 100))
+                raw_h = float(boundary.get("height", 100))
+            except (TypeError, ValueError) as e:
+                logger.warning(f"Region {region_id[:8]}: invalid boundary values {boundary}, skipping: {e}")
+                skipped_count += 1
+                continue
+
+            # P0 FIX: 过滤明显是默认/非法的边界（多个默认框会全部重叠在左上角）
+            if raw_x == 0 and raw_y == 0 and raw_w == 100 and raw_h == 100:
+                logger.warning(f"Region {region_id[:8]}: default boundary (0,0,100,100), skipping")
+                skipped_count += 1
+                continue
+
+            x = raw_x * coord_scale_x
+            y = raw_y * coord_scale_y
+            w = raw_w * coord_scale_x
+            h = raw_h * coord_scale_y
 
             if w <= 0 or h <= 0:
+                logger.warning(f"Region {region_id[:8]}: non-positive size ({w:.1f}x{h:.1f}), skipping")
+                skipped_count += 1
                 continue
+
+            # 确保渲染区域不严重超出图片边界（允许 5% 容差）
+            if x + w > actual_w * 1.05 or y + h > actual_h * 1.05:
+                logger.warning(
+                    f"Region {region_id[:8]}: boundary outside image "
+                    f"({x:.1f},{y:.1f},{w:.1f},{h:.1f} vs image {actual_w}x{actual_h}), skipping"
+                )
+                skipped_count += 1
+                continue
+
+
+            logger.debug(
+                f"Region {region_id[:8]}: rendering at ({x:.1f},{y:.1f}) size {w:.1f}x{h:.1f}"
+            )
+
 
             # 获取区域类型（用于气泡感知排版）
             region_type = getattr(db_region, 'type', None) or 'speech'
@@ -778,8 +837,14 @@ class RenderService:
             db_region.translated_text = translated_text
             rendered_count += 1
 
+        logger.info(
+            f"Render summary for page {page_id}: rendered={rendered_count}, skipped={skipped_count}, "
+            f"total_regions={len(regions)}, image={actual_w}x{actual_h}"
+        )
+
         # 合成图层
         composite = Image.alpha_composite(img, overlay)
+
 
         # 保持原图模式输出
         if original_mode == "RGB":
@@ -826,7 +891,9 @@ class RenderService:
             "result_url": result_url,
             "warnings": warnings,
             "regions_rendered": rendered_count,
+            "regions_skipped": skipped_count,
         }
+
 
     async def get_status(self, page_id: str, task_id: str, user_id: str) -> dict:
         result = await self.db.execute(

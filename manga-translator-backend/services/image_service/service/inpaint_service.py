@@ -646,11 +646,18 @@ def _extract_glcm_features(gray_roi: np.ndarray) -> np.ndarray:
         if h < 8 or w < 8:
             return np.zeros(6)
         
+        # Quantize gray_roi to 0..(levels-1) to match graycomatrix levels=16.
+        # skimage 会校验 max(gray_roi) < levels, 否则抛出:
+        # "The maximum grayscale value in the image should be smaller than the number of levels."
+        glcm_levels = 16
+        if gray_roi.max() >= glcm_levels:
+            gray_roi = (gray_roi.astype(np.float64) / gray_roi.max() * (glcm_levels - 1)).astype(np.uint8)
+        
         # Compute GLCM for 4 directions
         glcm = graycomatrix(
             gray_roi, distances=[1], 
             angles=[0, np.pi/4, np.pi/2, 3*np.pi/4],
-            levels=16, symmetric=True, normed=True
+            levels=glcm_levels, symmetric=True, normed=True
         )
         
         features = []

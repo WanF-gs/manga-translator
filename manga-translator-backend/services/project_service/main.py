@@ -45,10 +45,14 @@ app.add_middleware(AuthenticationMiddleware)
 
 app.include_router(projects.router, prefix="/api/v1/projects", tags=["Projects"])
 app.include_router(chapters.router, prefix="/api/v1/chapters", tags=["Chapters"])
-app.include_router(pages.router, prefix="/api/v1/pages", tags=["Pages"])
 # P0-2 fix: Mount only upload routes under /api/v1 to support /chapters/{cid}/pages/upload
 # WITHOUT polluting root namespace with /{page_id} catch-all routes
 app.include_router(pages.upload_router, prefix="/api/v1", tags=["Pages"])
+# P0-4 fix: pages router mounted at /api/v1/pages; its /{page_id} catch-all
+# will not shadow /api/v1/fonts/*, so fonts can be mounted normally.
+app.include_router(fonts.router, prefix="/api/v1/fonts", tags=["Fonts"])
+# B5 FIX: pages router must be at /api/v1/pages; frontend/gateway call /api/v1/pages/{page_id}
+app.include_router(pages.router, prefix="/api/v1/pages", tags=["Pages"])
 app.include_router(presets.router, prefix="/api/v1/presets", tags=["Presets"])
 app.include_router(trash.router, prefix="/api/v1/trash", tags=["Trash"])
 app.include_router(pipeline.router, prefix="/api/v1")
@@ -56,7 +60,6 @@ app.include_router(undo.router, prefix="/api/v1")
 app.include_router(websocket.router, prefix="/api/v1")
 app.include_router(moderation.router, prefix="/api/v1")
 app.include_router(storage.router)  # /storage/* file serving (no prefix, raw path)
-app.include_router(fonts.router, prefix="/api/v1/fonts", tags=["Fonts"])
 app.include_router(collaboration.router, prefix="/api/v1/collaboration", tags=["Collaboration"])
 app.include_router(review.router, prefix="/api/v1", tags=["Review"])
 app.include_router(review.review_router, prefix="/api/v1", tags=["Review"])  # P0-3 fix: /review/* paths for E2E compatibility
