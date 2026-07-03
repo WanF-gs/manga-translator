@@ -217,6 +217,7 @@ CREATE TABLE project_members (
                     CHECK (role IN ('owner','editor','reviewer','viewer')),
     invited_by      UUID REFERENCES users(user_id) ON DELETE SET NULL,
     joined_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
     UNIQUE (project_id, user_id)
@@ -242,6 +243,8 @@ CREATE TABLE collaboration_locks (
     lock_type       VARCHAR(10) NOT NULL CHECK (lock_type IN ('edit','review')),
     locked_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 minutes'),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
     UNIQUE (page_id)
 );
@@ -863,14 +866,14 @@ COMMENT ON COLUMN payment_orders.status IS 'created-待支付, paid-已支付, c
 -- ============================================================
 -- 7.1 内置8套字体预设
 INSERT INTO fonts (user_id, name, file_url, category, style_tags, license, language_tags, is_active) VALUES
-(NULL, '系统默认对话字体', 'system://default-dialogue', 'dialogue', '["通用","标准","可读"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
-(NULL, '热血漫风格字体', 'system://hotblood-dialogue', 'dialogue', '["热血","粗体","力量"]', 'free_commercial', '["ja","zh"]', TRUE),
-(NULL, '少女漫风格字体', 'system://shojo-dialogue', 'dialogue', '["温馨","圆体","柔和"]', 'free_commercial', '["ja","zh"]', TRUE),
-(NULL, '旁白标准字体', 'system://narration-standard', 'narration', '["标准","可读","正式"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
-(NULL, '拟声词特效字体', 'system://onomatopoeia-effect', 'onomatopoeia', '["特效","粗体","冲击"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
-(NULL, '标题大字字体', 'system://title-large', 'title', '["大号","醒目","标题"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
-(NULL, '手写风格字体', 'system://handwriting', 'dialogue', '["手写","自然","亲切"]', 'free_commercial', '["ja","zh"]', TRUE),
-(NULL, '恐怖漫氛围字体', 'system://horror-dialogue', 'dialogue', '["恐怖","尖锐","紧张"]', 'free_commercial', '["ja","zh"]', TRUE)
+(NULL, '系统默认对话字体', '/api/v1/fonts/file/NotoSansSC-Regular.otf', 'dialogue', '["sans-serif","modern","通用"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
+(NULL, '热血漫风格字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 'dialogue', '["bold","热血","粗体","力量"]', 'free_commercial', '["ja","zh"]', TRUE),
+(NULL, '少女漫风格字体', '/api/v1/fonts/file/LXGWWenKai-Regular.ttf', 'dialogue', '["少女","温馨","柔和","楷体"]', 'free_commercial', '["ja","zh"]', TRUE),
+(NULL, '旁白标准字体', '/api/v1/fonts/file/LXGWWenKai-Regular.ttf', 'narration', '["标准","可读","正式","楷体"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
+(NULL, '拟声词特效字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 'onomatopoeia', '["特效","粗体","冲击"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
+(NULL, '标题大字字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 'title', '["大号","醒目","标题"]', 'free_commercial', '["ja","zh","en","ko"]', TRUE),
+(NULL, '手写风格字体', '/api/v1/fonts/file/LXGWWenKai-Regular.ttf', 'dialogue', '["手写","自然","亲切","楷体"]', 'free_commercial', '["ja","zh"]', TRUE),
+(NULL, '恐怖漫氛围字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 'dialogue', '["恐怖","尖锐","紧张"]', 'free_commercial', '["ja","zh"]', TRUE)
 ON CONFLICT DO NOTHING;
 
 -- 7.2 预设8种TTS音色
@@ -886,17 +889,17 @@ INSERT INTO voices (voice_id, name, gender, age_group, tone_description, languag
 ON CONFLICT (voice_id) DO NOTHING;
 
 -- 7.3 预设成就定义
-INSERT INTO achievements (achievement_id, name, description, category, required_value) VALUES
-(gen_random_uuid(), '初出茅庐', '完成第一次翻译', 'translation', 1),
-(gen_random_uuid(), '翻译达人', '累计翻译100页', 'translation', 100),
-(gen_random_uuid(), '翻译大师', '累计翻译1000页', 'translation', 1000),
-(gen_random_uuid(), '词汇收集家', '收藏50个生词', 'vocabulary', 50),
-(gen_random_uuid(), '词汇达人', '收藏500个生词', 'vocabulary', 500),
-(gen_random_uuid(), '学习新星', '连续学习7天', 'streak', 7),
-(gen_random_uuid(), '学霸', '连续学习30天', 'streak', 30),
-(gen_random_uuid(), '学习狂人', '连续学习100天', 'streak', 100),
-(gen_random_uuid(), '知识分享者', '贡献10个术语到公开词典', 'social', 10),
-(gen_random_uuid(), '社群贡献者', '贡献100个术语到公开词典', 'social', 100)
+INSERT INTO achievements (achievement_id, name, description, icon_url, category, required_value) VALUES
+(gen_random_uuid(), '初出茅庐', '完成第一次翻译', '🎉', 'translation', 1),
+(gen_random_uuid(), '翻译达人', '累计翻译100页', '📚', 'translation', 100),
+(gen_random_uuid(), '翻译大师', '累计翻译1000页', '🏆', 'translation', 1000),
+(gen_random_uuid(), '词汇收集家', '收藏50个生词', '📖', 'vocabulary', 50),
+(gen_random_uuid(), '词汇达人', '收藏500个生词', '📚', 'vocabulary', 500),
+(gen_random_uuid(), '学习新星', '连续学习7天', '🔥', 'streak', 7),
+(gen_random_uuid(), '学霸', '连续学习30天', '📚', 'streak', 30),
+(gen_random_uuid(), '学习狂人', '连续学习100天', '👑', 'streak', 100),
+(gen_random_uuid(), '知识分享者', '贡献10个术语到公开词典', '📤', 'social', 10),
+(gen_random_uuid(), '社群贡献者', '贡献100个术语到公开词典', '🌟', 'social', 100)
 ON CONFLICT DO NOTHING;
 
 -- ============================================================

@@ -3,18 +3,21 @@
 -- Provides a complete "getting started" experience for new users
 -- ============================================================
 
--- ===== Insert Sample Fonts (for demo) — 对齐 §2.25 字体系统，使用实际存在的 NotoSansSC 文件 =====
+-- ===== Insert Sample Fonts (for demo) — 对齐 §2.25 字体系统，使用实际存在的字体文件 =====
+-- 覆盖风格：NotoSansSC（通用/粗体）、LXGW WenKai（少女/旁白/手写）、NotoSansJP（日语）
 -- 注意：新部署时 07_font_seed_fix.sql 会以 builtin-font-001~008 覆盖此处，用 NOTHING 避免冲突
 INSERT INTO fonts (font_id, user_id, name, file_url, file_size, category, style_tags, license, language_tags, is_active)
 VALUES
-  ('seed-font-001', '00000000-0000-0000-0000-000000000000', '系统默认对话字体', '/api/v1/fonts/file/NotoSansSC-Regular.otf', 2800000, 'dialogue', ARRAY['sans-serif', 'modern', '通用'], 'free_commercial', ARRAY['zh', 'ja'], true),
-  ('seed-font-002', '00000000-0000-0000-0000-000000000000', '热血漫风格字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 3200000, 'dialogue', ARRAY['bold', 'sans-serif', '热血', '少年'], 'free_commercial', ARRAY['zh', 'ja'], true),
-  ('seed-font-003', '00000000-0000-0000-0000-000000000000', '标题装饰字体', '/api/v1/fonts/file/NotoSansSC-VF.ttf', 3500000, 'title', ARRAY['variable', 'display', '现代'], 'free_commercial', ARRAY['zh', 'ja'], true),
-  ('seed-font-004', '00000000-0000-0000-0000-000000000000', '旁白标准字体', '/api/v1/fonts/file/NotoSansSC-Regular.otf', 2800000, 'narration', ARRAY['sans-serif', '旁白', '叙述'], 'free_commercial', ARRAY['zh', 'ja'], true),
-  ('seed-font-005', '00000000-0000-0000-0000-000000000000', '拟声词特效字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 3200000, 'onomatopoeia', ARRAY['bold', '特效', '拟声'], 'free_commercial', ARRAY['zh', 'ja'], true),
-  ('seed-font-006', '00000000-0000-0000-0000-000000000000', '少女漫风格字体', '/api/v1/fonts/file/NotoSansSC-Regular.otf', 2800000, 'dialogue', ARRAY['sans-serif', '少女', '温馨', '恋爱'], 'free_commercial', ARRAY['zh', 'ja'], true),
-  ('seed-font-007', '00000000-0000-0000-0000-000000000000', '手写风格字体', '/api/v1/fonts/file/NotoSansSC-VF.ttf', 3500000, 'dialogue', ARRAY['variable', '手写', '随性'], 'free_commercial', ARRAY['zh', 'ja'], true),
-  ('seed-font-008', '00000000-0000-0000-0000-000000000000', '恐怖漫氛围字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 3200000, 'dialogue', ARRAY['bold', '恐怖', '悬疑', '惊悚'], 'free_commercial', ARRAY['zh', 'ja'], true)
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', '系统默认对话字体', '/api/v1/fonts/file/NotoSansSC-Regular.otf', 8500000, 'dialogue', ARRAY['sans-serif', 'modern', '通用'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', '热血漫风格字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 8800000, 'dialogue', ARRAY['bold', 'sans-serif', '热血', '少年'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', '标题装饰字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 8800000, 'title', ARRAY['bold', 'display', '现代'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', '旁白标准字体', '/api/v1/fonts/file/LXGWWenKai-Regular.ttf', 19900000, 'narration', ARRAY['楷体', '旁白', '叙述', '柔和'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', '拟声词特效字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 8800000, 'onomatopoeia', ARRAY['bold', '特效', '拟声', '冲击'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000000', '少女漫风格字体', '/api/v1/fonts/file/LXGWWenKai-Regular.ttf', 19900000, 'dialogue', ARRAY['少女', '温馨', '恋爱', '楷体'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000000', '手写风格字体', '/api/v1/fonts/file/LXGWWenKai-Regular.ttf', 19900000, 'dialogue', ARRAY['手写', '楷体', '随性', '自然'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000000', '恐怖漫氛围字体', '/api/v1/fonts/file/NotoSansSC-Bold.otf', 8800000, 'dialogue', ARRAY['bold', '恐怖', '悬疑', '惊悚'], 'free_commercial', ARRAY['zh', 'ja'], true),
+  ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000000', '日语默认字体', '/api/v1/fonts/file/NotoSansJP-Regular.otf', 16000000, 'dialogue', ARRAY['日语', 'sans-serif', '通用'], 'free_commercial', ARRAY['ja'], true),
+  ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000000', '日语粗体', '/api/v1/fonts/file/NotoSansJP-Bold.otf', 17000000, 'dialogue', ARRAY['日语', 'bold', '热血'], 'free_commercial', ARRAY['ja'], true)
 ON CONFLICT (font_id) DO NOTHING;
 
 -- ===== Insert Sample TTS Voices =====
@@ -31,18 +34,18 @@ VALUES
 ON CONFLICT (voice_id) DO NOTHING;
 
 -- ===== Insert Sample Achievements =====
-INSERT INTO achievements (achievement_id, name, description, icon, condition_type, condition_value)
+INSERT INTO achievements (achievement_id, name, description, icon_url, category, required_value)
 VALUES
-  ('seed-ach-001', '初次翻译', '完成你的第一次翻译', '🎉', 'translate_count', 1),
-  ('seed-ach-002', '翻译达人', '完成10次翻译', '📚', 'translate_count', 10),
-  ('seed-ach-003', '词汇大师', '学习50个单词', '📖', 'learned_words', 50),
-  ('seed-ach-004', '连续打卡', '连续7天学习', '🔥', 'streak_days', 7),
-  ('seed-ach-005', '完美校对', '一次性校对通过率100%', '✅', 'perfect_review', 1),
-  ('seed-ach-006', '收藏大师', '收藏10部作品', '⭐', 'favorite_count', 10),
-  ('seed-ach-007', '导出高手', '导出10次翻译结果', '📦', 'export_count', 10),
-  ('seed-ach-008', '社交达人', '邀请3位好友', '👥', 'invite_count', 3),
-  ('seed-ach-009', '配音演员', '生成100段TTS音频', '🎙️', 'tts_count', 100),
-  ('seed-ach-010', '漫画大师', '处理100页漫画', '🏆', 'page_count', 100)
+  ('seed-ach-001', '初次翻译', '完成你的第一次翻译', '🎉', 'translation', 1),
+  ('seed-ach-002', '翻译达人', '完成10次翻译', '📚', 'translation', 10),
+  ('seed-ach-003', '词汇大师', '学习50个单词', '📖', 'vocabulary', 50),
+  ('seed-ach-004', '连续打卡', '连续7天学习', '🔥', 'streak', 7),
+  ('seed-ach-005', '完美校对', '一次性校对通过率100%', '✅', 'translation', 1),
+  ('seed-ach-006', '收藏大师', '收藏10部作品', '⭐', 'social', 10),
+  ('seed-ach-007', '导出高手', '导出10次翻译结果', '📦', 'translation', 10),
+  ('seed-ach-008', '社交达人', '邀请3位好友', '👥', 'social', 3),
+  ('seed-ach-009', '配音演员', '生成100段TTS音频', '🎙️', 'social', 100),
+  ('seed-ach-010', '漫画大师', '处理100页漫画', '🏆', 'translation', 100)
 ON CONFLICT (achievement_id) DO NOTHING;
 
 -- ===== Insert Sample Project =====
