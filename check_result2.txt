@@ -1,0 +1,11 @@
+your 131072x1 screen size is bogus.not running
+=== gateway binary exists? ===
+-rwxrwxrwx 1 wanf wanf 19421544 Jul  2 23:17 /mnt/c/Users/WanFi/Desktop/大三实训/demo_04/manga-translator-backend/gateway/gateway_linux
+=== health checks ===
+port 8001: 200
+port 8002: 200
+port 8003: 200
+port 8004: 200
+port 8005: 200
+port 8006: 200
+port 8007: 200
