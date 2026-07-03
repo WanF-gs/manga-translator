@@ -40,9 +40,9 @@ echo -n "  MinIO (9000)... "
 if curl -s http://localhost:9000/minio/health/live &>/dev/null; then
     echo "已运行"
 else
-    mkdir -p /tmp/minio-data
+    mkdir -p "$PROJECT/data/minio-data"
     MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin \
-        setsid minio server /tmp/minio-data --address :9000 --console-address :9001 &>/tmp/minio.log &
+        setsid minio server "$PROJECT/data/minio-data" --address :9000 --console-address :9001 &>/tmp/minio.log &
         MINIO_PID=$!
     sleep 2
     curl -s http://localhost:9000/minio/health/live &>/dev/null && echo "OK (PID $MINIO_PID)" || echo "FAIL"
@@ -66,12 +66,15 @@ export MINIO_BUCKET="manga-translator"
 export TENCENT_SECRET_ID="${TENCENT_SECRET_ID:-YOUR_TENCENT_SECRET_ID}"
 export TENCENT_SECRET_KEY="${TENCENT_SECRET_KEY:-YOUR_TENCENT_SECRET_KEY}"
 export TENCENT_TMT_REGION="ap-guangzhou"
-export UPLOAD_DIR="/tmp/manga-uploads"
+export UPLOAD_DIR="$PROJECT/data/uploads"
 
-# ---- OpenAI 翻译 (Multimodal Engine) ----
-export OPENAI_API_KEY="sk-6eb834fc005c49059e8a5f85da9a9471"
-export OPENAI_API_BASE="https://api.deepseek.com/v1"
-export OPENAI_MODEL="deepseek-chat"
+# ---- 豆包视觉翻译 (火山方舟 Multimodal Engine) ----
+# 模型: doubao-seed-evolving (多模态, 支持图片输入)
+# 端点: ep-20260702160219-q87sw (火山方舟→在线推理→接入点)
+# 兼容 OpenAI 格式, 原生支持图片输入 (日语漫画→中文翻译)
+export OPENAI_API_KEY="ark-3178a889-9195-4d98-bcc0-00cef9fa48d6-e1566"
+export OPENAI_API_BASE="https://ark.cn-beijing.volces.com/api/v3"
+export OPENAI_MODEL="ep-20260702160219-q87sw"
 
 # P0: OCR 引擎 + HF 离线模式（全局，所有微服务继承）
 export PADDLEOCR_ENABLED="true"
@@ -83,7 +86,7 @@ export CTD_MASK_THRESH="0.10"
 export HF_ENDPOINT="https://hf-mirror.com"
 
 # 确保字体目录和上传目录存在（不依赖 Docker 的 /app 路径）
-mkdir -p /tmp/fonts /tmp/manga-uploads "$FONT_DIR" 2>/dev/null
+mkdir -p "$PROJECT/data/fonts" "$PROJECT/data/uploads" "$FONT_DIR" 2>/dev/null
 export FONT_DIR
 # 确保用户 pip 包路径可用
 export PATH="$HOME/.local/bin:$PATH"
@@ -99,11 +102,10 @@ start_svc() {
     local name=$1 port=$2 module=$3 extra_env=$4
     local max_wait=5
     echo -n "  $name (port $port)... "
-    # 检测端口占用 → 强制 kill 后再启动
-    if ss -tlnp 2>/dev/null | grep -q ":$port "; then
+    # 检测端口占用 → 强制 kill 后再启动（优先用 fuser，无需依赖 ss）
+    if fuser ${port}/tcp 2>/dev/null | grep -q .; then
         echo -n "kill old..."
-        old_pid=$(fuser ${port}/tcp 2>/dev/null | awk '{print $1}')
-        [ -n "$old_pid" ] && kill -9 $old_pid 2>/dev/null
+        fuser -k ${port}/tcp 2>/dev/null
         sleep 1.5
     fi
     export FONT_DIR="$FONT_DIR"
@@ -129,7 +131,8 @@ start_svc() {
 
 start_svc "user-service"         8001 "user_service.main:app"
 start_svc "project-service"      8002 "project_service.main:app"
-start_svc "translation-service"  8003 "translation_service.main:app"
+start_svc "translation-service"  8003 "translation_service.main:app" \
+    "export STORAGE_BASE_URL=http://localhost:8002"
 start_svc "image-service"        8004 "image_service.main:app" \
     "export STORAGE_BASE_URL=http://localhost:8002"
 start_svc "export-service"       8005 "export_service.main:app" \
@@ -187,6 +190,8 @@ fi
 
 echo -n "  API Gateway (8080)... "
 export SERVER_PORT=8080; export GIN_MODE=release
+export JWT_SECRET_KEY="${JWT_SECRET_KEY:-your-super-secret-jwt-key-change-in-production}"
+export JWT_ACCESS_TOKEN_EXPIRE="${JWT_ACCESS_TOKEN_EXPIRE:-86400}s"
 export CORS_ORIGINS="http://localhost:3000,http://localhost:3001,http://localhost:5173,http://127.0.0.1:3000"
 export USER_SERVICE_URL="http://127.0.0.1:8001"
 export PROJECT_SERVICE_URL="http://127.0.0.1:8002"
