@@ -23,6 +23,7 @@ export type BoundaryMode = 'rect' | 'polygon' | 'bezier';
 
 export interface StyleConfig {
   font_family: string;
+  font_id?: string;
   font_size: number;
   color: string;
   stroke_width?: number;
@@ -32,6 +33,8 @@ export interface StyleConfig {
   vertical?: boolean;
   letter_spacing?: number;
   line_height?: number;
+  /** P3: 排版模式 — strict / smart_scaling / balloon_fill */
+  layout_mode?: 'strict' | 'smart_scaling' | 'balloon_fill';
 }
 
 export interface TextRegion {

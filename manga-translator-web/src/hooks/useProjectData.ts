@@ -19,12 +19,15 @@ export function useProjectData(projectId: string) {
   const router = useRouter();
 
   // Read current chapter/page from URL params
-  const currentChapterId = searchParams.get("chapter") || undefined;
-  const currentPageId = searchParams.get("page") || undefined;
+  // FIX: reject literal "undefined" string (JS string coercion from undefined var)
+  const rawChapter = searchParams.get("chapter");
+  const rawPage = searchParams.get("page");
+  const currentChapterId = (rawChapter && rawChapter !== "undefined" && rawChapter !== "null") ? rawChapter : undefined;
+  const currentPageId = (rawPage && rawPage !== "undefined" && rawPage !== "null") ? rawPage : undefined;
 
   // React Query hooks (auto-cached, auto-refetch, staleTime 30s)
   const projectQuery = useProjectDetail(projectId);
-  const chaptersQuery = useChapters(projectId);
+  const chaptersQuery = useChapters(projectId || "");
   const pagesQuery = usePages(currentChapterId || "");
   const pageDetailQuery = usePageDetail(currentPageId || "");
 
@@ -32,6 +35,25 @@ export function useProjectData(projectId: string) {
   const chapters = chaptersQuery.data || [];
   const pages = pagesQuery.data || [];
   const currentPage = pageDetailQuery.data;
+
+  // FIX: 将当前章节的 pages 注入到 chapters 中，供 Sidebar 渲染缩略图
+  const chaptersWithPages = useMemo(() => {
+    return chapters.map((ch: any) => {
+      const chapterPages =
+        ch.chapter_id === currentChapterId
+          ? pages.map((p: any) => ({
+              page_id: p.page_id,
+              chapter_id: p.chapter_id,
+              label: `第${p.sort_order}页`,
+              thumbnail_url: p.thumbnail_url || p.original_url,
+              thumbnail_color: '#3B82F6',
+              status: p.status,
+              sort_order: p.sort_order,
+            }))
+          : [];
+      return { ...ch, pages: chapterPages };
+    });
+  }, [chapters, currentChapterId, pages]);
 
   const isLoading = projectQuery.isLoading || chaptersQuery.isLoading;
   const isPageLoading = pagesQuery.isLoading || pageDetailQuery.isLoading;
@@ -50,6 +72,7 @@ export function useProjectData(projectId: string) {
 
   const navigateToPage = useCallback(
     (pageId: string) => {
+      if (!pageId || pageId === "undefined" || pageId === "null") return;
       const params = new URLSearchParams(searchParams.toString());
       params.set("page", pageId);
       router.push(`?${params.toString()}`);
@@ -105,7 +128,7 @@ export function useProjectData(projectId: string) {
   return {
     // Data
     project,
-    chapters,
+    chapters: chaptersWithPages,
     pages,
     currentPage,
     currentChapter,

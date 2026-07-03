@@ -181,7 +181,7 @@ export function usePageDetail(pageId: string) {
       const res = await pageApi.getDetail(pageId);
       return extractData<any>(res) as PageData & { regions?: TextRegion[] };
     },
-    enabled: !!pageId,
+    enabled: !!pageId && pageId !== "undefined" && pageId !== "null" && pageId.length >= 32,
     staleTime: 10 * 1000,
   });
 }

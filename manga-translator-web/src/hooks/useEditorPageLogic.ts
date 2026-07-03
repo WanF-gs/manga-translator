@@ -3,7 +3,7 @@
  * Reduces page.tsx from 399 lines → <250 lines (target met).
  */
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import { useEditorStore } from '@/stores/editorStore';
 import type { EditorRegion, ChapterSummary } from '@/components/editor/types';
 import type { TextRegion } from '@/types';
@@ -20,15 +20,18 @@ export function useEditorPageLogic(projectId: string) {
   // ── Editor Store ──
   const {
     mode, canvasScale, setCanvasScale, selectedRegionId,
-    selectRegion, regions, setRegions, updateRegion, showOriginal,
+    selectRegion, regions, setRegions, updateRegion, showOriginal, displayMode,
     toggleShowOriginal, activeStep, setActiveStep,
-    getPageProcessing, resetPageProcessing,
+    getPageProcessing, resetPageProcessing, showRegions,
   } = useEditorStore();
+
+  // FIX: replace static message with App.useApp to avoid antd warning
+  const { message } = App.useApp();
 
   // ── Project Data (React Query) ──
   const {
     project, chapters, currentPageId, currentPage: currentPageData,
-    isLoading, error, navigateToPage: selectPage, refetchAll: refresh,
+    currentChapterId, isLoading, error, navigateToPage: selectPage, refetchAll: refresh,
     pageIndex, totalPages,
   } = useProjectData(projectId);
 
@@ -87,18 +90,77 @@ export function useEditorPageLogic(projectId: string) {
   }, [selectedRegionId, regions]);
 
   // ── Auto Save ──
-  const regionsRef = useRef(regions);
-  regionsRef.current = regions;
+  // FIX: 直接读 store 最新 regions，避免 setState 异步导致自动保存的是旧数据
   const { debouncedSave: debouncedAutoSave, saveNow } = useAutoSave({
     currentPageId,
-    getRegions: () => regionsRef.current as TextRegion[],
+    getRegions: () => useEditorStore.getState().regions as TextRegion[],
   });
 
+  // 包装属性修改，确保触发自动保存
+  const handleUpdateRegion = useCallback((rid: string, data: Partial<TextRegion>) => {
+    updateRegion(rid, data);
+    debouncedAutoSave();
+  }, [updateRegion, debouncedAutoSave]);
+
+  // 包装所有会修改 regions 的操作，确保触发自动保存
+  const regionOpsWithAutoSave = useMemo(() => ({
+    ...regionOps,
+    handleDeleteRegion: (rid: string) => {
+      regionOps.handleDeleteRegion(rid);
+      debouncedAutoSave();
+    },
+    handleToggleLock: (rid: string) => {
+      regionOps.handleToggleLock(rid);
+      debouncedAutoSave();
+    },
+    handleApplyAll: (rid: string) => {
+      regionOps.handleApplyAll(rid);
+      debouncedAutoSave();
+    },
+    handleApplyStyle: (rid: string, style: any) => {
+      regionOps.handleApplyStyle(rid, style);
+      debouncedAutoSave();
+    },
+    handleBatchApplyStyle: (rids: string[], style: any) => {
+      regionOps.handleBatchApplyStyle(rids, style);
+      debouncedAutoSave();
+    },
+    handleCreateRegionAt: (x: number, y: number) => {
+      const id = regionOps.handleCreateRegionAt(x, y);
+      if (id) debouncedAutoSave();
+      return id;
+    },
+    handleMergeRegions: (rids: string[]) => {
+      regionOps.handleMergeRegions(rids);
+      debouncedAutoSave();
+    },
+    handleSplitRegion: (rid: string) => {
+      regionOps.handleSplitRegion(rid);
+      debouncedAutoSave();
+    },
+    handleConvertToPolygon: (rid: string) => {
+      regionOps.handleConvertToPolygon(rid);
+      debouncedAutoSave();
+    },
+    handleConvertToRect: (rid: string) => {
+      regionOps.handleConvertToRect(rid);
+      debouncedAutoSave();
+    },
+  }), [regionOps, debouncedAutoSave]);
+
   // ── AI Pipeline ──
+  const projectTargetLang = (project as any)?.default_target_lang;
+  const effectiveTargetLang = (projectTargetLang && projectTargetLang.trim()) ? projectTargetLang : 'zh-CN';
+  // 日志：当使用默认回退值时输出警告，方便排查翻译语言不对的问题
+  if (!projectTargetLang || !projectTargetLang.trim()) {
+    console.warn('[useEditorPageLogic] project.default_target_lang 为空，回退到默认值 zh-CN。请检查项目设置。project:', project);
+  } else {
+    console.log('[useEditorPageLogic] effective target_lang:', effectiveTargetLang);
+  }
   const { autoTranslate, retryStep: handleRetryStep, cancelPipeline } = useAIPipeline({
     currentPageId,
     projectSourceLang: (project as any)?.source_lang,
-    defaultTargetLang: (project as any)?.default_target_lang || 'zh-CN',
+    defaultTargetLang: effectiveTargetLang,
     currentPageData,
     setRegions: (r: TextRegion[]) => setRegions(r),
     setProcessedUrl: () => {},
@@ -167,6 +229,9 @@ export function useEditorPageLogic(projectId: string) {
 
   // ── Export ──
   const { handleExport, getAllPages } = useExportHandlers({
+    projectId,
+    currentPageId,
+    chapterId: currentChapterId,
     chapters: (chapters || []).map(ch => ({
       chapter_id: ch.chapter_id, name: ch.name, sort_order: ch.sort_order,
       pages: (ch.pages || []).map(p => ({
@@ -175,6 +240,7 @@ export function useEditorPageLogic(projectId: string) {
         status: p.status, sort_order: p.sort_order,
       })),
     })) as ChapterSummary[],
+    message,
     onSetRightPanelOpen: setRightPanelOpen,
     onSetRightPanelMode: (m: string) => setRightPanelMode(m as RightPanelMode),
     onSetBatchModalOpen: setBatchModalOpen,
@@ -184,6 +250,11 @@ export function useEditorPageLogic(projectId: string) {
     setBatchModalOpen(false);
     refresh();
   }, [refresh]);
+
+  /** 批量翻译：打开批量处理弹窗，对所有页面执行全管线 */
+  const handleBatchTranslate = useCallback(() => {
+    setBatchModalOpen(true);
+  }, []);
 
   // ── Region Canvas Handler ──
   const handleCanvasSelectRegion = useCallback((id: string | null) => {
@@ -203,7 +274,7 @@ export function useEditorPageLogic(projectId: string) {
 
   return {
     // State
-    mode, canvasScale, setCanvasScale, regions, selectedRegionId, showOriginal,
+    mode, canvasScale, setCanvasScale, regions, selectedRegionId, showOriginal, displayMode, showRegions,
     toggleShowOriginal, activeStep, failedStep, stepErrorMessage,
     leftPanelOpen, setLeftPanelOpen, rightPanelOpen, setRightPanelOpen,
     rightPanelMode, setRightPanelMode, batchModalOpen,
@@ -213,10 +284,11 @@ export function useEditorPageLogic(projectId: string) {
     currentPageNumber, totalPages, completedPages,
     selectedRegion,
     // Handlers
-    handleSave, handleAutoTranslate, handleStepClick, handleRetryStep,
+    handleSave, handleAutoTranslate, handleBatchTranslate, handleStepClick, handleRetryStep,
     handleExport, getAllPages, handleBatchComplete,
     handleCanvasSelectRegion, handleCanvasUpdateRegion,
-    selectPage, updateRegion, regionOps,
+    selectPage, updateRegion, regionOps: regionOpsWithAutoSave,
+    handleUpdateRegion,
     getPageProcessing,
   };
 }

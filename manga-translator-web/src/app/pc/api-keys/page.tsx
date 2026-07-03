@@ -22,7 +22,7 @@ export default function ApiKeysPage() {
     queryFn: async () => {
       try {
         const res = await apiKeyApi.getList();
-        return (res?.data?.data || []) as ApiKeyData[];
+        return (res?.data?.data?.items || []) as ApiKeyData[];
       } catch {
         return [] as ApiKeyData[];
       }
@@ -32,12 +32,12 @@ export default function ApiKeysPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (values: { name: string; rate_limit_per_minute?: number }) =>
+    mutationFn: (values: { name: string; rate_limit?: number }) =>
       apiKeyApi.create(values),
     onSuccess: (res) => {
       const data = res.data?.data;
-      if (data?.raw_key) {
-        setNewKey(data.raw_key);
+      if (data?.api_key) {
+        setNewKey(data.api_key);
       }
       message.success('API Key 创建成功');
       setCreateOpen(false);
@@ -82,7 +82,7 @@ export default function ApiKeysPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-slate-900 dark:text-white">{name}</p>
-            <code className="text-xs text-slate-400">{record.key_prefix}...{record.key_hash?.slice?.(-4)}</code>
+            <code className="text-xs text-slate-400">{record.key_prefix}...</code>
           </div>
         </div>
       ),
@@ -98,7 +98,7 @@ export default function ApiKeysPage() {
     },
     {
       title: '速率限制',
-      dataIndex: 'rate_limit_per_minute',
+      dataIndex: 'rate_limit',
       key: 'rate_limit',
       width: 100,
       render: (v: number) => `${v}/min`,
@@ -126,7 +126,7 @@ export default function ApiKeysPage() {
       render: (_: unknown, record: ApiKeyData) => (
         <Popconfirm
           title="确认禁用该 API Key？禁用后将拒绝所有请求"
-          onConfirm={() => deleteMutation.mutate(record.key_id)}
+          onConfirm={() => deleteMutation.mutate(record.api_key_id)}
         >
           <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
         </Popconfirm>
@@ -174,21 +174,56 @@ export default function ApiKeysPage() {
         )}
 
         {/* API 使用指南 */}
-        <Card className="mb-6" size="small" title={
+        <Card className="mb-6" title={
           <span className="flex items-center gap-2"><Shield size={16} className="text-primary-500" />API 使用指南</span>
         }>
-          <Paragraph className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-            API Key 前缀为 <Text code>msk_</Text>，通过 <Text code>Authorization: Bearer msk_xxx</Text> 请求头传递。
+          <Paragraph className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+            在请求头中携带 <Text code>X-API-Key: msk_xxx</Text> 或 <Text code>Authorization: Bearer msk_xxx</Text> 进行鉴权。
+            基础 URL：<Text code>http://localhost:8080/api/v1/external</Text>（部署后替换为实际域名）。
           </Paragraph>
-          <Paragraph className="text-xs text-slate-400 mb-0">
-            基础 URL: <Text code>/api/v1</Text> | 所有响应均为统一格式: <Text code>{'{"code": 0, "message": "success", "data": {...}}'}</Text>
+
+          <div className="space-y-4">
+            {[
+              {
+                method: 'POST', path: '/detect', name: '文本区域检测',
+                desc: '传入图片 URL 或 Base64，返回文字区域坐标与类型。需要 detect 权限。',
+                body: `{\n  "image_url": "https://example.com/page.png",\n  "language": "ja"\n}`,
+              },
+              {
+                method: 'POST', path: '/ocr', name: 'OCR 文字识别',
+                desc: '传入图片 URL + 区域坐标列表，返回每个区域识别出的文字与置信度。需要 ocr 权限。',
+                body: `{\n  "image_url": "https://example.com/page.png",\n  "regions": [{"bbox": [10, 20, 200, 60], "type": "speech"}],\n  "lang": "ja"\n}`,
+              },
+              {
+                method: 'POST', path: '/translate', name: '文本翻译',
+                desc: '传入待翻译文本 + 源语言/目标语言，返回译文。需要 translate 权限。',
+                body: `{\n  "text": "こんにちは世界",\n  "source_lang": "ja",\n  "target_lang": "zh-CN"\n}`,
+              },
+            ].map((ep) => (
+              <div key={ep.path} className="border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Tag color="blue">{ep.method}</Tag>
+                  <Text code className="text-xs">{`/api/v1/external${ep.path}`}</Text>
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{ep.name}</span>
+                </div>
+                <Paragraph className="!text-xs text-slate-500 dark:text-slate-400 !mb-2">{ep.desc}</Paragraph>
+                <pre className="text-xs bg-slate-950 text-green-400 p-2 rounded overflow-x-auto !mb-0">{`curl -X ${ep.method} http://localhost:8080/api/v1/external${ep.path} \\
+  -H "X-API-Key: msk_YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '${ep.body}'`}</pre>
+              </div>
+            ))}
+          </div>
+
+          <Paragraph className="text-xs text-slate-400 mt-3 !mb-0">
+            统一响应格式：<Text code>{'{"code":0,"message":"success","data":{...}}'}</Text>
           </Paragraph>
         </Card>
 
         <Table
           columns={columns}
           dataSource={isError ? [] : (Array.isArray(keys) ? keys : [])}
-          rowKey="key_id"
+          rowKey="api_key_id"
           loading={isLoading}
           pagination={false}
           locale={{ emptyText: isError ? `加载失败: ${(queryError as any)?.message || '后端不可用'}` : '暂无 API Key，点击右上角创建' }}
@@ -200,7 +235,10 @@ export default function ApiKeysPage() {
         title="创建 API Key"
         open={createOpen}
         onCancel={() => { setCreateOpen(false); form.resetFields(); }}
-        onOk={() => form.validateFields().then((v) => createMutation.mutate(v))}
+        onOk={() => form.validateFields().then((v) => createMutation.mutate({
+          name: v.name,
+          rate_limit: v.rate_limit_per_minute ?? 60,
+        }))}
         confirmLoading={createMutation.isPending}
         destroyOnHidden
       >

@@ -21,6 +21,7 @@ import { useProjects } from '@/hooks/useApiQueries';
 import { useQueryState } from '@/hooks/useQueryState';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { ProgressiveImage } from '@/components/common/ProgressiveImage';
+import { resolveProcessedImageUrl } from '@/utils/pageImage';
 import { useAuthStore } from '@/stores/authStore';
 import type { ProjectData } from '@/types';
 
@@ -225,7 +226,7 @@ export default function MobileHomePage() {
                   className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 active:scale-[0.98] transition-transform"
                 >
                   <ProgressiveImage
-                    src={(project as any).thumbnail_url || ''}
+                    src={resolveProcessedImageUrl((project as any).cover_url) || ''}
                     alt={project.name}
                     aspectRatio="14/20"
                     className="w-14 h-20 rounded-lg flex-shrink-0"

@@ -1,6 +1,6 @@
 /**
  * 跨作品搜索 & 学习 API 服务
- * 对接后端 reader_service (端口 8007)
+ * 对接后端 reader_service (端口 8006)
  */
 
 import request from './request';
@@ -59,13 +59,23 @@ export interface UserAchievement {
   completed_at?: string;
 }
 
+export interface ReviewWord {
+  progress_id: string;
+  vocab_id: string;
+  word: string;
+  reading: string;
+  meaning: string;
+  translation: string;
+  part_of_speech: string;
+  mastery_level: number;
+  review_count: number;
+  last_review_at: string;
+  next_review_at: string;
+  streak_days: number;
+}
+
 export interface ReviewSession {
-  words: Array<{
-    word: string;
-    translation: string;
-    mastery_level: number;
-  }>;
-  session_id: string;
+  items: ReviewWord[];
   total: number;
 }
 
@@ -84,7 +94,7 @@ export const searchApi = {
 export const learnApi = {
   /** 获取学习进度列表 */
   getProgress: (language?: string) =>
-    request.get<ApiResponse<LearningProgress[]>>('/learn/progress', {
+    request.get<ApiResponse<{ items: LearningProgress[]; total: number }>>('/learn/progress', {
       params: language ? { language } : {},
     }),
 
@@ -94,6 +104,10 @@ export const learnApi = {
       mastery_level: masteryLevel,
     }),
 
+  /** 记录单词复习（更新艾宾浩斯遗忘曲线） */
+  reviewVocab: (vocabId: string) =>
+    request.post<ApiResponse<{ vocab_id: string; review_count: number; mastery_level: number; next_review_at: string }>>(`/learn/review/${vocabId}`),
+
   /** 获取复习会话 */
   getReview: (language: string, count?: number) =>
     request.get<ApiResponse<ReviewSession>>('/learn/review', {
@@ -102,7 +116,7 @@ export const learnApi = {
 
   /** 获取成就列表 */
   getAchievements: () =>
-    request.get<ApiResponse<UserAchievement[]>>('/learn/achievements'),
+    request.get<ApiResponse<{ items: UserAchievement[]; total: number }>>('/learn/achievements'),
 
   /** 获取单词统计数据 */
   getWordStats: () =>

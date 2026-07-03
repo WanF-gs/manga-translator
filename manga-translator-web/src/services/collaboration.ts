@@ -77,6 +77,7 @@ export const collaborationApi = {
 
   /** 创建评论 */
   createComment: (data: {
+    project_id: string;
     page_id: string;
     region_id?: string;
     content: string;

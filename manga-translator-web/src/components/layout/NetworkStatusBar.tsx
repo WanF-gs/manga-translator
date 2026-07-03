@@ -15,11 +15,11 @@ export const NetworkStatusBar: React.FC = () => {
   const checkBackend = useCallback(async () => {
     setChecking(true);
     try {
-      const res = await fetch('/api/v1/projects', {
+      const res = await fetch('/health', {
         method: 'GET',
         signal: AbortSignal.timeout(5000),
       });
-      // 200=logged in, 401=backend reachable but not logged in, both mean backend is up
+      // 200=backend is up
       setBackendOffline(false);
     } catch {
       setBackendOffline(true);

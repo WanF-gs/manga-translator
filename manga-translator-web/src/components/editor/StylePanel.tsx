@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Spin, message, Tooltip, Empty } from 'antd';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Button, Spin, message, Tooltip, Empty, Select, Divider } from 'antd';
 import {
   Paintbrush,
   Check,
@@ -11,9 +11,12 @@ import {
   Palette,
   Loader2,
   AlertCircle,
+  Replace,
+  Type,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { presetApi } from '@/services/preset';
+import { useFontLoaderContext } from '@/hooks/useFontLoader';
 import type { StylePreset, StyleConfig, PresetCategory } from '@/types';
 import type { EditorRegion } from './types';
 
@@ -168,6 +171,23 @@ export const StylePanel: React.FC<StylePanelProps> = ({
   const [activeCategory, setActiveCategory] = useState<PresetCategory | 'all'>('all');
   const [applying, setApplying] = useState<string | null>(null);
 
+  // ── v3.0: 批量替换字体（共享 FontLoaderContext）──
+  const [batchFontId, setBatchFontId] = useState<string | undefined>(undefined);
+  const [batchTarget, setBatchTarget] = useState<'all' | 'selected_type'>('selected_type');
+  const [batchReplacing, setBatchReplacing] = useState(false);
+
+  const { fontList, loading: fontsLoading } = useFontLoaderContext();
+
+  const fontOptions = useMemo(() => {
+    const list = fontList || [];
+    const sys = list.filter(f => f.is_active && f.user_id === null);
+    const usr = list.filter(f => f.is_active && f.user_id !== null);
+    const groups: { label: string; options: { value: string; label: string }[] }[] = [];
+    if (sys.length) groups.push({ label: '系统字体', options: sys.map(f => ({ value: f.font_id, label: f.name })) });
+    if (usr.length) groups.push({ label: '我的字体', options: usr.map(f => ({ value: f.font_id, label: f.name })) });
+    return groups;
+  }, [fontList]);
+
   const loadPresets = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -245,6 +265,41 @@ export const StylePanel: React.FC<StylePanelProps> = ({
     [selectedRegion, allRegions, onBatchApply]
   );
 
+  // ── v3.0: 批量替换字体 ──
+  const handleBatchFontReplace = useCallback(() => {
+    if (!batchFontId) {
+      message.warning('请先选择目标字体');
+      return;
+    }
+    const selected = (fontList || []).find((f) => f.font_id === batchFontId);
+    if (!selected) return;
+
+    let targetIds: string[];
+    if (batchTarget === 'selected_type' && selectedRegion) {
+      targetIds = allRegions.filter((r) => r.type === selectedRegion.type).map((r) => r.region_id);
+    } else {
+      targetIds = allRegions.map((r) => r.region_id);
+    }
+    if (targetIds.length === 0) {
+      message.warning('没有可替换的区域');
+      return;
+    }
+    setBatchReplacing(true);
+    try {
+      const newStyle: Partial<StyleConfig> = {
+        font_id: selected.font_id,
+        font_family: selected.name,
+      };
+      onBatchApply(targetIds, newStyle as StyleConfig);
+      message.success(`已将 ${targetIds.length} 个区域的字体替换为「${selected.name}」`);
+      setBatchFontId(undefined);
+    } catch {
+      message.error('批量替换失败');
+    } finally {
+      setBatchReplacing(false);
+    }
+  }, [batchFontId, batchTarget, selectedRegion, allRegions, fontList, onBatchApply]);
+
   const filteredPresets = activeCategory === 'all'
     ? presets
     : presets.filter((p) => p.category === activeCategory);
@@ -318,6 +373,75 @@ export const StylePanel: React.FC<StylePanelProps> = ({
               />
             ))}
           </div>
+        )}
+      </div>
+
+      {/* ── v3.0: 批量替换字体 ── */}
+      <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Replace size={13} className="text-indigo-500" />
+          <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+            批量替换字体
+          </span>
+        </div>
+        <Select
+          size="small"
+          showSearch
+          placeholder="选择目标字体..."
+          value={batchFontId}
+          onChange={(v) => setBatchFontId(v)}
+          filterOption={(input, option) =>
+            String(option?.label || '').toLowerCase().includes(input.toLowerCase())
+          }
+          options={[
+            ...(fontOptions.map(g => ({
+              label: g.label,
+              title: g.label,
+              options: g.options,
+            }))),
+          ]}
+          className="w-full mb-2"
+        />
+        <div className="flex gap-1.5">
+          <Button
+            size="small"
+            type={batchTarget === 'selected_type' ? 'primary' : 'default'}
+            onClick={() => setBatchTarget('selected_type')}
+            disabled={!selectedRegion}
+            className="text-[10px] flex-1"
+          >
+            {selectedRegion ? '同类型' : '同类型'}
+          </Button>
+          <Button
+            size="small"
+            type={batchTarget === 'all' ? 'primary' : 'default'}
+            onClick={() => setBatchTarget('all')}
+            className="text-[10px] flex-1"
+          >
+            全部区域
+          </Button>
+          <Button
+            size="small"
+            type="primary"
+            danger
+            icon={<Replace size={11} />}
+            onClick={handleBatchFontReplace}
+            loading={batchReplacing}
+            disabled={!batchFontId}
+            className="text-[10px]"
+          >
+            替换
+          </Button>
+        </div>
+        {batchTarget === 'selected_type' && selectedRegion && (
+          <p className="text-[10px] text-slate-400 mt-1">
+            将替换 {allRegions.filter(r => r.type === selectedRegion.type).length} 个{CATEGORY_LABELS[selectedRegion.type as PresetCategory] || ''}区域
+          </p>
+        )}
+        {batchTarget === 'all' && (
+          <p className="text-[10px] text-slate-400 mt-1">
+            将替换全部 {allRegions.length} 个区域
+          </p>
         )}
       </div>
 

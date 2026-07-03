@@ -32,8 +32,9 @@ interface EditorState {
   mode: 'simple' | 'professional';
   activeStep: 'detect' | 'ocr' | 'translate' | 'inpaint' | 'render' | null;
 
-  // 显示模式
-  showOriginal: boolean;
+  // 显示模式: original=原文 | translated=译文 | bilingual=双语叠加
+  displayMode: 'original' | 'translated' | 'bilingual';
+  showOriginal: boolean; // 兼容属性: displayMode === 'original'
   showRegions: boolean;  // §2.2.8: 一键隐藏/显示所有检测选区线
 
   // 操作历史
@@ -61,6 +62,7 @@ interface EditorState {
   setMode: (mode: 'simple' | 'professional') => void;
   setActiveStep: (step: EditorState['activeStep']) => void;
   toggleShowOriginal: () => void;
+  setDisplayMode: (mode: 'original' | 'translated' | 'bilingual') => void;
   toggleShowRegions: () => void;
   pushHistory: (record: Omit<OperationRecord, 'timestamp'>) => void;
   undo: () => void;
@@ -91,6 +93,7 @@ export const useEditorStore = create<EditorState>()(
   mode: 'professional',
   activeStep: null,
 
+  displayMode: 'translated',
   showOriginal: false,
   showRegions: true,  // §2.2.8: 默认显示检测选区线
 
@@ -149,7 +152,16 @@ export const useEditorStore = create<EditorState>()(
 
   setActiveStep: (step) => set({ activeStep: step }),
 
-  toggleShowOriginal: () => set((state) => ({ showOriginal: !state.showOriginal })),
+  /** §2.7.1 / 附录A: Ctrl+B 循环切换 原文 → 译文 → 双语，双语模式下强制显示选区线 */
+  toggleShowOriginal: () => set((state) => {
+    const next = state.displayMode === 'translated' ? 'original'
+      : state.displayMode === 'original' ? 'bilingual'
+      : 'translated';
+    // 切换到双语模式时强制显示选区线，否则看不到叠加的原文文字
+    return { displayMode: next, showOriginal: next === 'original', showRegions: next === 'bilingual' ? true : state.showRegions };
+  }),
+  setDisplayMode: (mode: 'original' | 'translated' | 'bilingual') =>
+    set({ displayMode: mode, showOriginal: mode === 'original', showRegions: mode === 'bilingual' ? true : undefined }),
   toggleShowRegions: () => set((state) => ({ showRegions: !state.showRegions })),
 
   pushHistory: (record) =>
@@ -239,6 +251,7 @@ export const useEditorStore = create<EditorState>()(
       regions: [],
       mode: 'professional',
       activeStep: null,
+      displayMode: 'translated',
       showOriginal: false,
       showRegions: true,
       history: [],

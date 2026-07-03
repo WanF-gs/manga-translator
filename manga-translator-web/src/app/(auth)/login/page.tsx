@@ -89,7 +89,7 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-md mx-4 animate-slide-up">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 via-primary-600 to-violet-600 mb-5 shadow-xl shadow-primary-500/30">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 via-blue-500 to-violet-500 mb-5 shadow-lg shadow-primary-500/25 group-hover:shadow-xl group-hover:shadow-primary-500/35 transition-shadow">
           <Sparkles size={28} className="text-white" />
         </div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">欢迎回来</h1>
@@ -98,9 +98,12 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="glass-panel p-6 sm:p-8">
+      <div className="glass-panel p-6 sm:p-8 relative overflow-hidden">
+        {/* 顶部渐变装饰条 */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
+        
         {error && (
-          <Alert type="error" message={error} showIcon className="mb-5 rounded-lg" />
+          <Alert type="error" message={error} showIcon className="mb-5 rounded-xl" />
         )}
 
         <Form
@@ -113,7 +116,7 @@ export default function LoginPage() {
         >
           <Form.Item
             name="account"
-            label={<span className="text-slate-700 dark:text-slate-300 font-medium">邮箱或手机号</span>}
+            label={<span className="text-slate-700 dark:text-slate-300 font-semibold text-[13px]">邮箱或手机号</span>}
             rules={[{ required: true, message: '请输入邮箱或手机号' }]}
           >
             <Input
@@ -126,7 +129,7 @@ export default function LoginPage() {
 
           <Form.Item
             name="password"
-            label={<span className="text-slate-700 dark:text-slate-300 font-medium">密码</span>}
+            label={<span className="text-slate-700 dark:text-slate-300 font-semibold text-[13px]">密码</span>}
             rules={[
               { required: true, message: '请输入密码' },
               { min: 6, message: '密码至少需要6个字符' },

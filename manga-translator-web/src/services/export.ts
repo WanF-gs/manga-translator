@@ -47,11 +47,12 @@ export type BilingualMode = 'side-by-side' | 'top-bottom' | 'in-bubble';
 
 export const exportApi = {
   /** 单页导出（PRD: POST /api/v1/export/single） */
-  single: (pageId: string, format: ExportFormat = 'png', quality?: number) =>
+  single: (pageId: string, format: ExportFormat = 'png', quality?: number, bilingual = false) =>
     request.post<ApiResponse<ExportResult>>('/export/single', {
       page_id: pageId,
       format,
       quality: quality ?? 90,
+      bilingual,
     }),
 
   /** 章节导出（PRD: POST /api/v1/export/batch 批量导出） */

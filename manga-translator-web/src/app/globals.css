@@ -12,6 +12,10 @@
     --accent: 249 115 22;
     --glass-bg: rgba(255, 255, 255, 0.75);
     --glass-border: rgba(203, 213, 225, 0.6);
+    --surface-elevated: 255 255 255;
+    --surface-muted: 241 245 249;
+    --text-muted: 71 85 105;
+    --border-subtle: 226 232 240;
   }
 
   .dark {
@@ -21,6 +25,10 @@
     --accent: 251 146 60;
     --glass-bg: rgba(15, 23, 42, 0.75);
     --glass-border: rgba(51, 65, 85, 0.6);
+    --surface-elevated: 30 41 59;
+    --surface-muted: 15 23 42;
+    --text-muted: 148 163 184;
+    --border-subtle: 51 65 85;
   }
 
   /* P2 A11y: High contrast mode (WCAG 2.1 AA §1.4.3 Contrast Minimum) */
@@ -91,10 +99,10 @@
 @layer components {
   /* 增强玻璃态卡片 */
   .glass-card {
-    @apply bg-white/75 dark:bg-slate-800/70 backdrop-blur-xl
-           border border-slate-200/60 dark:border-slate-700/50
-           rounded-xl shadow-card;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    @apply bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl
+           border border-slate-200/50 dark:border-slate-700/40
+           rounded-2xl shadow-card;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .glass-card-hover {
@@ -102,52 +110,75 @@
   }
 
   .glass-card-hover:hover {
-    @apply shadow-card-hover border-primary-200 dark:border-primary-700/50;
-    transform: translateY(-2px);
+    @apply shadow-glow border-primary-300/60 dark:border-primary-600/40;
+    transform: translateY(-3px);
+  }
+
+  /* 带渐变边框的卡片 */
+  .glass-card-accent {
+    @apply glass-card relative;
+  }
+
+  .glass-card-accent::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgb(59 130 246 / 0.4), rgb(249 115 22 / 0.15), rgb(59 130 246 / 0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   /* 玻璃态面板（更强调） */
   .glass-panel {
     @apply bg-white/90 dark:bg-slate-900/85 backdrop-blur-2xl
            border border-slate-200/50 dark:border-slate-700/50
-           rounded-xl shadow-panel;
+           rounded-2xl shadow-panel;
   }
 
   /* 状态徽标 */
   .status-badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-           transition-colors duration-200;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
+           transition-all duration-200;
   }
 
   .status-pending {
-    @apply bg-slate-100 text-slate-600 dark:bg-slate-700/70 dark:text-slate-400;
+    @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400
+           border border-slate-200/60 dark:border-slate-700/60;
   }
 
   .status-translating {
-    @apply bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400
+    @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+           border border-blue-200/60 dark:border-blue-700/40
            animate-pulse-soft;
   }
 
   .status-reviewed {
-    @apply bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400;
+    @apply bg-amber-50 text-amber-700 dark:bg-amber-900/25 dark:text-amber-400
+           border border-amber-200/60 dark:border-amber-700/40;
   }
 
   .status-completed {
-    @apply bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400;
+    @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-400
+           border border-emerald-200/60 dark:border-emerald-700/40;
   }
 
   /* 按钮变体 */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2
-           bg-primary-500 hover:bg-primary-600 active:bg-primary-700
-           text-white font-medium rounded-lg
-           shadow-sm shadow-primary-500/25
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+           bg-gradient-to-br from-primary-500 to-primary-600
+           hover:from-primary-600 hover:to-primary-700
+           active:from-primary-700 active:to-primary-800
+           text-white font-semibold rounded-xl
+           shadow-sm shadow-primary-500/20 hover:shadow-md hover:shadow-primary-500/25
            transition-all duration-200 ease-out
            disabled:opacity-50 disabled:cursor-not-allowed
            disabled:shadow-none;
   }
   .btn-primary:hover {
-    @apply shadow-md shadow-primary-500/30;
     transform: translateY(-1px);
   }
   .btn-primary:active {
@@ -155,20 +186,24 @@
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2
-           bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600
-           text-slate-700 dark:text-slate-300 font-medium rounded-lg
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+           bg-white dark:bg-slate-800
+           hover:bg-slate-50 dark:hover:bg-slate-700
+           text-slate-700 dark:text-slate-300 font-semibold rounded-xl
+           border border-slate-200 dark:border-slate-700
            transition-all duration-200 ease-out
+           shadow-sm
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary:hover {
+    @apply border-slate-300 dark:border-slate-600 shadow;
     transform: translateY(-1px);
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2
-           hover:bg-slate-100 dark:hover:bg-slate-800
-           text-slate-600 dark:text-slate-400 font-medium rounded-lg
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+           hover:bg-slate-100 dark:hover:bg-slate-800/80
+           text-slate-600 dark:text-slate-400 font-semibold rounded-xl
            transition-all duration-200 ease-out;
   }
   .btn-ghost:hover {
@@ -176,14 +211,15 @@
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2
-           bg-red-500 hover:bg-red-600 active:bg-red-700
-           text-white font-medium rounded-lg
-           shadow-sm shadow-red-500/25
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+           bg-gradient-to-br from-red-500 to-red-600
+           hover:from-red-600 hover:to-red-700
+           active:from-red-700 active:to-red-800
+           text-white font-semibold rounded-xl
+           shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25
            transition-all duration-200 ease-out;
   }
   .btn-danger:hover {
-    @apply shadow-md shadow-red-500/30;
     transform: translateY(-1px);
   }
   .btn-danger:active {
@@ -192,25 +228,46 @@
 
   /* 输入框 */
   .input-field {
-    @apply w-full px-3 py-2 bg-white dark:bg-slate-800
-           border border-slate-300 dark:border-slate-600
-           rounded-lg text-slate-900 dark:text-slate-100
+    @apply w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80
+           border border-slate-200 dark:border-slate-700
+           rounded-xl text-slate-900 dark:text-slate-100 text-sm
            placeholder:text-slate-400 dark:placeholder:text-slate-500
-           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400
+           focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400
+           dark:focus:ring-primary-400/20 dark:focus:border-primary-500
            transition-all duration-200 ease-out;
   }
   .input-field:hover {
-    @apply border-slate-400 dark:border-slate-500;
+    @apply border-slate-300 dark:border-slate-600;
   }
 
   /* 标签 */
   .label {
-    @apply block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1;
+    @apply block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5;
   }
 
   /* 分割线 */
   .divider {
-    @apply border-t border-slate-200 dark:border-slate-700;
+    @apply border-t border-slate-200/70 dark:border-slate-700/70;
+  }
+
+  /* 渐变装饰条 */
+  .accent-stripe {
+    @apply relative;
+  }
+  .accent-stripe::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5 rounded-full
+           bg-gradient-to-r from-primary-500 via-accent-500 to-primary-500
+           dark:from-primary-400 dark:via-accent-400 dark:to-primary-400;
+  }
+
+  /* 背景网格图案装饰 */
+  .bg-dot-pattern {
+    background-image: radial-gradient(rgb(148 163 184 / 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .dark .bg-dot-pattern {
+    background-image: radial-gradient(rgb(71 85 105 / 0.3) 1px, transparent 1px);
   }
 }
 
@@ -231,18 +288,24 @@
   }
 
   .drag-overlay {
-    @apply ring-2 ring-primary-500 ring-offset-2 rounded-lg;
+    @apply ring-2 ring-primary-500 ring-offset-2 rounded-xl;
   }
 
-  /* 微妙渐变文字效果 */
+  /* 渐变文字效果 */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500
-           dark:from-primary-400 dark:via-primary-300 dark:to-accent-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-blue-500 to-accent-500
+           dark:from-primary-400 dark:via-blue-400 dark:to-accent-400;
   }
 
   /* 卡片悬浮发光 */
   .hover-glow:hover {
-    box-shadow: 0 0 25px -5px rgb(59 130 246 / 0.3), 0 8px 16px -6px rgb(0 0 0 / 0.1);
+    box-shadow: 0 0 30px -8px rgb(59 130 246 / 0.35), 0 8px 20px -8px rgb(0 0 0 / 0.12);
+  }
+
+  /* 微妙渐变背景动画 */
+  .bg-shimmer {
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
   }
 }
 
@@ -253,27 +316,49 @@
   100% { background-position: 200% 0; }
 }
 
+@keyframes shimmerFast {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 /* 增强骨架屏 - 更流畅的 shimmer 效果 */
 .skeleton {
-  @apply bg-slate-200 dark:bg-slate-700 rounded;
+  @apply bg-slate-200 dark:bg-slate-700/60 rounded-lg overflow-hidden relative;
   background: linear-gradient(
     110deg,
-    rgb(226 232 240 / 0.5) 8%,
-    rgb(241 245 249 / 0.8) 18%,
-    rgb(226 232 240 / 0.5) 33%
+    rgb(226 232 240 / 0.6) 8%,
+    rgb(241 245 249 / 0.9) 18%,
+    rgb(226 232 240 / 0.6) 33%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.8s ease-in-out infinite;
+  animation: shimmer 2s ease-in-out infinite;
 }
 
 .dark .skeleton {
   background: linear-gradient(
     110deg,
     rgb(51 65 85 / 0.5) 8%,
-    rgb(71 85 105 / 0.7) 18%,
+    rgb(71 85 105 / 0.8) 18%,
     rgb(51 65 85 / 0.5) 33%
   );
   background-size: 200% 100%;
+}
+
+/* 骨架屏圆角图片位 */
+.skeleton-image {
+  @apply skeleton rounded-2xl;
+}
+
+/* 骨架屏文字行 */
+.skeleton-text {
+  @apply skeleton rounded-md;
+  height: 14px;
+}
+
+.skeleton-text-sm {
+  @apply skeleton-text;
+  height: 11px;
+  width: 60%;
 }
 
 @keyframes nav-progress {
@@ -283,18 +368,18 @@
 
 /* 页面入场动画 */
 @keyframes pageEnter {
-  0% { opacity: 0; transform: translateY(8px); }
+  0% { opacity: 0; transform: translateY(12px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
 .animate-page-enter {
-  animation: pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: pageEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* 交错子元素入场 */
 .animate-stagger > * {
   opacity: 0;
-  animation: pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pageEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-stagger > *:nth-child(1) { animation-delay: 0.05s; }
@@ -312,6 +397,27 @@
   animation: gradientShift 8s ease infinite;
 }
 
+/* 浮动装饰动画 */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(1deg); }
+  66% { transform: translateY(6px) rotate(-1deg); }
+}
+
+.animate-float-slow {
+  animation: floatSlow 20s ease-in-out infinite;
+}
+
+/* 入场缩放 */
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-pop-in {
+  animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* ===== P2 A11y: Reduced motion (WCAG 2.1 §2.3.3) ===== */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -323,21 +429,32 @@
     scroll-behavior: auto !important;
   }
 
-  .skeleton {
+  .skeleton,
+  .skeleton-image,
+  .skeleton-text,
+  .skeleton-text-sm {
     animation: none !important;
     background: rgb(203 213 225);
   }
 
-  .dark .skeleton {
+  .dark .skeleton,
+  .dark .skeleton-image,
+  .dark .skeleton-text,
+  .dark .skeleton-text-sm {
     background: rgb(71 85 105);
   }
 
-  .bg-animate-gradient {
+  .bg-animate-gradient,
+  .bg-shimmer {
     animation: none !important;
   }
 
   .hover-glow:hover {
     box-shadow: none !important;
+  }
+
+  .glass-card-hover:hover {
+    transform: none !important;
   }
 }
 

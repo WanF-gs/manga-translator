@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Button, Slider, Select, Radio, Progress, message, Modal } from 'antd';
+import { Button, Slider, Select, Radio, Progress, App, Modal } from 'antd';
 import {
   Download,
   FileImage,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { exportApi } from '@/services/export';
+import { pageApi } from '@/services/page';
 import type { ExportFormat } from '@/services/export';
 import type { BilingualMode, ExportResolution } from '@/types';
 
@@ -72,6 +73,11 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   const [filename, setFilename] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const { message } = App.useApp();
+  const MESSAGE_KEY = 'export-panel';
+
+  // FIX: 防止快速双击创建多个导出任务
+  const isSubmittingRef = useRef(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -103,7 +109,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             const fname = status.output_filename || status.filename || `export_${tid}`;
             setFilename(fname);
             exportApi.downloadFile(url, fname);
-            message.success('导出完成！');
+            message.success({ content: '导出完成！', key: MESSAGE_KEY });
           } else {
             try {
               const dlRes = await exportApi.getDownload(tid);
@@ -112,10 +118,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 setDownloadUrl(dlData.download_url);
                 setFilename(dlData.filename || `export_${tid}`);
                 exportApi.downloadFile(dlData.download_url, dlData.filename || `export_${tid}`);
-                message.success('导出完成！');
+                message.success({ content: '导出完成！', key: MESSAGE_KEY });
               }
             } catch {
-              message.success('导出任务已完成');
+              message.success({ content: '导出任务已完成', key: MESSAGE_KEY });
             }
           }
         } else if (status.status === 'failed') {
@@ -123,12 +129,13 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           pollTimerRef.current = null;
           setPhase('error');
           setErrorMsg(status.error || status.error_msg || '导出失败');
-          message.error('导出失败');
+          message.error({ content: '导出失败', key: MESSAGE_KEY });
         } else if (attempts >= maxAttempts) {
           clearInterval(pollTimerRef.current!);
           pollTimerRef.current = null;
           setPhase('error');
           setErrorMsg('导出超时，请稍后重试');
+          message.warning({ content: '导出超时，请稍后重试', key: MESSAGE_KEY });
         }
       } catch {
         if (attempts >= maxAttempts) {
@@ -136,62 +143,89 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           pollTimerRef.current = null;
           setPhase('error');
           setErrorMsg('进度查询超时');
+          message.warning({ content: '进度查询超时', key: MESSAGE_KEY });
         }
       }
     }, 3000);
-  }, []);
+  }, [message]);
 
   const handleStartExport = useCallback(async () => {
+    // FIX: 防止快速双击创建多个导出任务
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
     setPhase('processing');
     setProgress(0);
     setErrorMsg(null);
 
-    const hide = message.loading({ content: '正在创建导出任务...', key: 'export-panel', duration: 0 });
-
     try {
       let result: any;
+      let isSingleExport = false;
 
       if (scope === 'current' && currentPageId) {
+        isSingleExport = true;
+        // FIX: 单页导出前先重新渲染，确保属性面板修改的字体/字号/颜色生效
+        try {
+          message.loading({ content: '正在重新渲染译文...', key: 'export-render', duration: 0 });
+          await pageApi.render(currentPageId);
+          message.success({ content: '渲染完成，开始导出...', key: 'export-render' });
+        } catch (renderErr: any) {
+          message.warning({
+            content: `渲染失败，将使用已有渲染结果导出：${renderErr?.message || '未知错误'}`,
+            key: 'export-render',
+          });
+        }
         result = await exportApi.single(currentPageId, format, quality);
       } else if (scope === 'chapter' && chapterId) {
+        message.loading({ content: '正在创建导出任务...', key: MESSAGE_KEY, duration: 0 });
         result = await exportApi.chapter(chapterId, format, quality, includeBilingual, bilingualMode);
       } else {
+        message.loading({ content: '正在创建导出任务...', key: MESSAGE_KEY, duration: 0 });
         result = await exportApi.project(projectId, format, quality, includeBilingual, bilingualMode);
       }
 
       const taskData = result.data?.data || result.data;
       const tid = taskData?.task_id;
 
-      hide();
-
-      if (tid) {
+      // FIX: 单页导出后端始终同步完成（含 render 预处理），直接下载
+      // 不检查 status 字段，避免字段名不匹配导致走入不必要的轮询
+      if (isSingleExport && taskData?.download_url) {
+        setPhase('done');
+        setTaskId(tid || null);
+        setDownloadUrl(taskData.download_url);
+        const fname = taskData.filename || taskData.output_filename || `export.${format}`;
+        setFilename(fname);
+        exportApi.downloadFile(taskData.download_url, fname);
+        message.success({ content: '导出完成！', key: MESSAGE_KEY });
+      } else if (tid) {
         setTaskId(tid);
-        message.loading({ content: '导出中...', key: 'export-panel', duration: 0 });
+        message.loading({ content: '导出中...', key: MESSAGE_KEY, duration: 0 });
         startPolling(tid);
       } else if (taskData?.download_url) {
         setPhase('done');
         setDownloadUrl(taskData.download_url);
         setFilename(taskData.filename || `export.${format}`);
         exportApi.downloadFile(taskData.download_url, taskData.filename || `export.${format}`);
-        message.success({ content: '导出完成！', key: 'export-panel' });
+        message.success({ content: '导出完成！', key: MESSAGE_KEY });
       } else {
-        message.warning({ content: '导出完成，但未获取到下载链接', key: 'export-panel' });
+        message.warning({ content: '导出完成，但未获取到下载链接', key: MESSAGE_KEY });
         setPhase('done');
       }
     } catch (err: any) {
-      hide();
       const statusCode = err?.response?.status || 0;
       if (statusCode === 404) {
         setPhase('error');
         setErrorMsg('导出服务暂不可用，后端 export_service 未就绪');
-        message.warning({ content: '导出服务暂不可用', key: 'export-panel' });
+        message.warning({ content: '导出服务暂不可用', key: MESSAGE_KEY });
       } else {
         setPhase('error');
         setErrorMsg(err?.message || '导出失败');
-        message.error({ content: `导出失败: ${err?.message}`, key: 'export-panel' });
+        message.error({ content: `导出失败: ${err?.message}`, key: MESSAGE_KEY });
       }
+    } finally {
+      isSubmittingRef.current = false;
     }
-  }, [scope, currentPageId, chapterId, projectId, format, quality, startPolling]);
+  }, [scope, currentPageId, chapterId, projectId, format, quality, startPolling, includeBilingual, bilingualMode, message]);
 
   const handleRetry = useCallback(() => {
     setPhase('config');
@@ -399,7 +433,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               icon={<Zap size={16} />}
               onClick={handleStartExport}
               className="mt-2"
-              disabled={(scope === 'current' && !currentPageId) || (scope === 'chapter' && !chapterId)}
+              disabled={phase !== 'config' || (scope === 'current' && !currentPageId) || (scope === 'chapter' && !chapterId)}
+              loading={phase === 'processing'}
             >
               开始导出 ({getScopeLabel()})
             </Button>

@@ -9,7 +9,19 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { learnApi, type LearningProgress, type UserAchievement, type ReviewSession } from '@/services/search';
+import { learnApi, type LearningProgress, type UserAchievement, type ReviewWord } from '@/services/search';
+
+interface ReviewState {
+  words: Array<{
+    word: string;
+    translation: string;
+    mastery_level: number;
+    progress_id: string;
+    vocab_id: string;
+  }>;
+  session_id: string;
+  total: number;
+}
 
 const MASTERY_LABELS = ['新学', '初识', '熟悉', '掌握', '熟练', '精通'];
 const MASTERY_COLORS = ['default', 'red', 'orange', 'blue', 'green', 'gold'];
@@ -18,7 +30,7 @@ export default function LearnPage() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [activeLang, setActiveLang] = useState<string>('ja');
-  const [reviewWords, setReviewWords] = useState<ReviewSession | null>(null);
+  const [reviewWords, setReviewWords] = useState<ReviewState | null>(null);
   const [currentWordIdx, setCurrentWordIdx] = useState(0);
   const [reviewing, setReviewing] = useState(false);
 
@@ -66,9 +78,16 @@ export default function LearnPage() {
     mutationFn: () => learnApi.getReview(activeLang, 10),
     onSuccess: (res) => {
       const session = res.data?.data;
-      const words = session?.words || [];
-      if (words.length > 0) {
-        setReviewWords({ ...session, words });
+      const items = session?.items || [];
+      if (items.length > 0) {
+        const words = items.map((it: any) => ({
+          word: it.word,
+          translation: it.translation || it.meaning || '',
+          mastery_level: it.mastery_level || 1,
+          progress_id: it.progress_id,
+          vocab_id: it.vocab_id,
+        }));
+        setReviewWords({ words, session_id: '', total: words.length });
         setCurrentWordIdx(0);
         setReviewing(true);
       } else {
@@ -93,7 +112,9 @@ export default function LearnPage() {
     if (!reviewWords || currentWordIdx >= reviewWords.words.length) return;
     const word = reviewWords.words[currentWordIdx];
     const newLevel = Math.min(5, Math.max(1, word.mastery_level + (rating > 2 ? 1 : -1)));
-    updateProgressMutation.mutate({ id: word.word, level: newLevel });
+    
+    // Update progress which now also updates the Ebbinghaus schedule (next_review_at, last_review_at)
+    updateProgressMutation.mutate({ id: word.progress_id, level: newLevel });
 
     if (currentWordIdx + 1 < reviewWords.words.length) {
       setCurrentWordIdx(currentWordIdx + 1);
@@ -159,9 +180,12 @@ export default function LearnPage() {
               <div className="text-3xl font-bold text-slate-900 dark:text-white">
                 {reviewWords.words[currentWordIdx].word}
               </div>
-              <div className="text-lg text-slate-500 italic">
-                {reviewWords.words[currentWordIdx].translation}
-              </div>
+              {reviewWords.words[currentWordIdx].translation &&
+                reviewWords.words[currentWordIdx].translation !== reviewWords.words[currentWordIdx].word && (
+                  <div className="text-lg text-slate-500 italic">
+                    {reviewWords.words[currentWordIdx].translation}
+                  </div>
+                )}
               <div className="text-xs text-slate-400">
                 掌握度：{MASTERY_LABELS[reviewWords.words[currentWordIdx].mastery_level] || '未知'}
               </div>
@@ -201,6 +225,7 @@ export default function LearnPage() {
                     { value: 'ja', label: '日语' },
                     { value: 'en', label: '英语' },
                     { value: 'ko', label: '韩语' },
+                    { value: 'zh', label: '中文' },
                   ]}
                   style={{ width: 90 }}
                 />

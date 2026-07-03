@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { Select, Slider, ColorPicker, Button, Tooltip, Modal, Input, message, Empty } from 'antd';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Select, Slider, ColorPicker, Button, Tooltip, Modal, Input, message, Empty, Tag, Spin } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import {
   PanelRight,
@@ -17,12 +17,17 @@ import {
   Search,
   Link2,
   Unlink2,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  Type,
 } from 'lucide-react';
 import clsx from 'clsx';
 import Link from 'next/link';
-import type { EditorRegion } from './types';
+import { useQuery } from '@tanstack/react-query';
+import type { EditorRegion, FontSelectItem } from './types';
 import type { StyleConfig, OnomatopoeiaMode, CultureStrategy } from '@/types';
-import { REGION_TYPE_CONFIGS, FONT_OPTIONS, FONT_SIZE_MIN, FONT_SIZE_MAX } from './types';
+import { REGION_TYPE_CONFIGS, FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_CATEGORY_GROUPS } from './types';
 import {
   REGION_TYPE_LABELS,
   ONOMATOPOEIA_MODE_LABELS,
@@ -32,6 +37,8 @@ import {
 import { TranslationMemoryBadge } from './TranslationMemoryBadge';
 import { presetApi } from '@/services/preset';
 import { termApi } from '@/services/term';
+import { fontApi, type FontData, type SmartMatchResult } from '@/services/font';
+import { useFontLoaderContext } from '@/hooks/useFontLoader';
 import type { TermEntry } from '@/services/term';
 import type { StylePreset } from '@/types';
 
@@ -97,6 +104,90 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
   const [termSearchLoading, setTermSearchLoading] = useState(false);
   const [linkedTerms, setLinkedTerms] = useState<TermEntry[]>([]); // 当前区域关联的术语
   const [linkingTermId, setLinkingTermId] = useState<string | null>(null);
+
+  // ── v3.0 动态字体列表 (共享 FontLoaderContext，一次请求服务整个编辑器) ──
+  const { fontList: fontListData, loading: fontsLoading, defaultFontId, setDefaultFont } = useFontLoaderContext();
+
+  // ── v3.0 智能匹配推荐 ──
+  const [smartMatches, setSmartMatches] = useState<SmartMatchResult[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
+
+  useEffect(() => {
+    if (!region) {
+      setSmartMatches([]);
+      return;
+    }
+    const toneType = (region as any).tone_type;
+    const bubbleType = region.type;
+    if (!toneType && !bubbleType) return;
+
+    let cancelled = false;
+    setMatchesLoading(true);
+    fontApi
+      .smartMatch({
+        tone_type: toneType,
+        bubble_type: bubbleType,
+        text: region.translated_text || region.original_text,
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const d = res.data?.data;
+        const recs: SmartMatchResult[] = d?.recommendations || [];
+        if (!recs.length && d?.best_match) {
+          recs.push({ font: d.best_match, score: 1, reason: '默认推荐' });
+        }
+        setSmartMatches(recs);
+      })
+      .catch(() => setSmartMatches([]))
+      .finally(() => { if (!cancelled) setMatchesLoading(false); });
+    return () => { cancelled = true; };
+  }, [region?.region_id, region?.type, (region as any)?.tone_type, region?.translated_text, region?.original_text]);
+
+  // 构建分组字体选项
+  const fontGroupedOptions = useMemo(() => {
+    const fonts = fontListData || [];
+    const systemFonts = fonts.filter(f => f.is_active && f.user_id === null);
+    const userFonts = fonts.filter(f => f.is_active && f.user_id !== null);
+
+    const makeOptions = (list: FontData[]) =>
+      list.map((f) => ({
+        value: f.font_id,
+        label: (
+          <span className="flex items-center gap-1.5">
+            <Type size={12} className="text-slate-400 flex-shrink-0" />
+            <span className="truncate max-w-[120px]">{f.name}</span>
+            {f.style_tags?.length ? (
+              <span className="text-[10px] text-slate-400 truncate max-w-[80px]">
+                {f.style_tags.slice(0, 2).join('·')}
+              </span>
+            ) : null}
+          </span>
+        ),
+        fontId: f.font_id,
+        fontName: f.name,
+      }));
+
+    const groups: { label: string; options: ReturnType<typeof makeOptions> }[] = [];
+    if (systemFonts.length) {
+      groups.push({ label: '系统内置字体', options: makeOptions(systemFonts) });
+    }
+    if (userFonts.length) {
+      groups.push({ label: '我的字体', options: makeOptions(userFonts) });
+    }
+    if (!groups.length) {
+      groups.push({
+        label: '内置字体（离线）',
+        options: [
+          { value: 'builtin:default', label: '漫画对话体 (默认)', fontId: '', fontName: '内置漫画对话体' },
+          { value: 'builtin:narration', label: '漫画旁白体', fontId: '', fontName: '内置漫画旁白体' },
+          { value: 'builtin:wenkai', label: '霞鹜文楷', fontId: '', fontName: 'LXGW WenKai' },
+          { value: 'builtin:noto', label: 'Noto Sans SC', fontId: '', fontName: 'Noto Sans SC' },
+          { value: 'builtin:noto-jp', label: 'Noto Sans JP', fontId: '', fontName: 'Noto Sans JP' },
+        ],
+      });
+    }
+    return groups;
+  }, [fontListData]);
 
   useEffect(() => {
     if (region) {
@@ -313,6 +404,64 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
       })));
     }
   }, [region?.region_id, (region as any)?.memory_matches?.length]);
+
+  // ── v3.0: 缺字检测 ——
+  const [glyphCoverage, setGlyphCoverage] = useState<{
+    coverage: number;
+    missing_chars: string[];
+    needs_fallback: boolean;
+    checking: boolean;
+    checked: boolean;
+  }>({ coverage: 1, missing_chars: [], needs_fallback: false, checking: false, checked: false });
+
+  useEffect(() => {
+    const fontId = region?.style_config?.font_id;
+    const text = region?.translated_text?.trim();
+    if (!fontId || !text || text.length === 0) {
+      setGlyphCoverage({ coverage: 1, missing_chars: [], needs_fallback: false, checking: false, checked: false });
+      // 清除 region 上的缺字标记
+      if (region && (region.glyph_status || region.glyph_missing_count)) {
+        onUpdate(region.region_id, { glyph_status: 'ok' as const, glyph_missing_count: 0 } as Partial<EditorRegion>);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    setGlyphCoverage(prev => ({ ...prev, checking: true, checked: false }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fontApi.glyphCoverage({ text, font_id: fontId });
+        if (cancelled || !region) return;
+        const d = res.data?.data || {};
+        const missingLen = (d.missing_chars || []).length;
+        const needs = d.needs_fallback || missingLen > 0;
+        setGlyphCoverage({
+          coverage: d.coverage ?? 1,
+          missing_chars: d.missing_chars ?? [],
+          needs_fallback: needs,
+          checking: false,
+          checked: true,
+        });
+        // 回写到区域数据，让 RegionOverlay 能读取红色标记
+        if (needs) {
+          onUpdate(region.region_id, {
+            glyph_status: 'missing' as const,
+            glyph_missing_count: missingLen,
+          } as Partial<EditorRegion>);
+        } else {
+          onUpdate(region.region_id, {
+            glyph_status: 'ok' as const,
+            glyph_missing_count: 0,
+          } as Partial<EditorRegion>);
+        }
+      } catch {
+        if (cancelled) return;
+        setGlyphCoverage({ coverage: 1, missing_chars: [], needs_fallback: false, checking: false, checked: true });
+      }
+    }, 600);
+
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [region?.style_config?.font_id, region?.translated_text]);
 
   if (!region) {
     return (
@@ -603,6 +752,49 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
           </p>
         </div>
 
+        {/* ── v3.0: 缺字检测结果 ── */}
+        {glyphCoverage.checked && region.style_config?.font_id && (
+          <div
+            className={clsx(
+              'p-2.5 rounded-lg border text-xs',
+              glyphCoverage.needs_fallback || glyphCoverage.missing_chars.length > 0
+                ? 'bg-red-50 dark:bg-red-900/15 border-red-200 dark:border-red-800'
+                : 'bg-green-50 dark:bg-green-900/15 border-green-200 dark:border-green-800'
+            )}
+          >
+            <div className="flex items-center gap-1.5">
+              {glyphCoverage.checking ? (
+                <Spin size="small" />
+              ) : glyphCoverage.needs_fallback || glyphCoverage.missing_chars.length > 0 ? (
+                <AlertTriangle size={14} className="text-red-500" />
+              ) : (
+                <CheckCircle2 size={14} className="text-green-500" />
+              )}
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                字符覆盖率: {(glyphCoverage.coverage * 100).toFixed(0)}%
+              </span>
+            </div>
+            {glyphCoverage.missing_chars.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {glyphCoverage.missing_chars.slice(0, 15).map((ch, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center justify-center w-5 h-5 rounded bg-red-200 dark:bg-red-800/60 text-red-700 dark:text-red-300 font-mono text-[11px]"
+                    title={`缺失字符: ${ch}`}
+                  >
+                    {ch}
+                  </span>
+                ))}
+                {glyphCoverage.missing_chars.length > 15 && (
+                  <span className="text-red-500 text-[10px] self-center ml-1">
+                    +{glyphCoverage.missing_chars.length - 15} 字
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 样式配置 */}
         <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
           <label className="label text-xs mb-2">字体样式</label>
@@ -625,16 +817,117 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
             </div>
           )}
 
-          {/* 字体选择 */}
+          {/* ── v3.0 智能匹配字体推荐 ── */}
+          {smartMatches.length > 0 && (
+            <div className="mb-3 p-2 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/50">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles size={12} className="text-indigo-500" />
+                <span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+                  智能推荐字体
+                </span>
+                {matchesLoading && <Spin size="small" />}
+              </div>
+              <div className="space-y-1">
+                {smartMatches.slice(0, 3).map((m, idx) => {
+                  const f = m.font;
+                  return (
+                    <button
+                      key={f.font_id || idx}
+                      type="button"
+                      onClick={() => {
+                        handleStyleChange('font_id', f.font_id || '');
+                        handleStyleChange('font_family', f.name || '');
+                        message.success(`已应用推荐字体「${f.name}」`);
+                      }}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs
+                        bg-white/70 dark:bg-slate-800/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/40
+                        border border-transparent hover:border-indigo-300 dark:hover:border-indigo-700
+                        transition-all group"
+                    >
+                      <span className="flex-shrink-0 w-5 h-5 rounded bg-indigo-100 dark:bg-indigo-800/50 flex items-center justify-center">
+                        <Type size={11} className="text-indigo-600 dark:text-indigo-400" />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-medium text-slate-700 dark:text-slate-200 truncate">
+                          {f.name}
+                        </span>
+                        {m.reason && (
+                          <span className="block text-[10px] text-slate-400 truncate">
+                            {m.reason}
+                          </span>
+                        )}
+                      </span>
+                      {m.score != null && (
+                        <span className="text-[10px] text-indigo-500 font-medium flex-shrink-0">
+                          {m.score.toFixed(1)}分
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── v3.0 字体选择（动态加载字体库）── */}
           <div className="mb-2">
-            <label className="text-[10px] text-slate-400 mb-0.5 block">字体</label>
+            <label className="text-[10px] text-slate-400 mb-0.5 flex items-center justify-between">
+              <span>字体</span>
+              {fontsLoading && <Spin size="small" />}
+            </label>
             <Select
               size="small"
-              value={style.font_family || '内置漫画对话体'}
-              onChange={(val) => handleStyleChange('font_family', val)}
+              showSearch
+              value={style.font_id || style.font_family || 'builtin:default'}
+              onChange={(val) => {
+                if (typeof val !== 'string') return;
+                if (val.startsWith('builtin:')) {
+                  // 离线兜底：存 font_family 字符串
+                  handleStyleChange('font_id', undefined);
+                  const builtinFamily =
+                    val === 'builtin:noto' ? 'Noto Sans SC' :
+                    val === 'builtin:noto-jp' ? 'Noto Sans JP' :
+                    val === 'builtin:wenkai' ? 'LXGW WenKai' :
+                    val === 'builtin:narration' ? '内置漫画旁白体' :
+                    '内置漫画对话体';
+                  handleStyleChange('font_family', builtinFamily);
+                } else {
+                  // 真实 font_id
+                  const selected = (fontListData || []).find((f) => f.font_id === val);
+                  handleStyleChange('font_id', val);
+                  handleStyleChange('font_family', selected?.name || '');
+                }
+              }}
+              filterOption={(input, option) => {
+                const label = typeof option?.label === 'object' ? '' : String(option?.label || '');
+                return label.toLowerCase().includes(input.toLowerCase()) ||
+                  (option as any)?.fontName?.toLowerCase().includes(input.toLowerCase());
+              }}
               className="w-full"
-              options={FONT_OPTIONS.map((f) => ({ value: f.value, label: f.label }))}
+              options={fontGroupedOptions.map((group) => ({
+                label: group.label,
+                title: group.label,
+                options: group.options.map((o) => ({ ...o, label: o.label })),
+              }))}
+              placeholder="选择字体..."
             />
+            {/* P2: 设为全局默认字体 */}
+            {(region.style_config?.font_id || region.style_config?.font_family) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const fid = (region.style_config as any)?.font_id;
+                  const fam = region.style_config?.font_family;
+                  if (fid || fam) {
+                    setDefaultFont(fid || null, fam || null);
+                    message.success(`已设为全局默认字体 · ${fam || fid}`);
+                  }
+                }}
+                className="mt-1 text-[10px] text-indigo-500 hover:text-indigo-700 underline"
+              >
+                设为全局默认字体
+              </button>
+            )}
           </div>
 
           {/* 字号滑块 */}

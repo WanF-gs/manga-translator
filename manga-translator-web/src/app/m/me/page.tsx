@@ -28,6 +28,9 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore, type ThemeMode } from '@/stores/themeStore';
 import { useRouter } from 'next/navigation';
+import { paymentApi } from '@/services/payment';
+import { authApi } from '@/services/auth';
+import { App } from 'antd';
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
   { value: 'light', label: '浅色模式', icon: <Sun size={16} /> },
@@ -36,9 +39,10 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: React.ReactNode }[
 ];
 
 export default function MobileMePage() {
-  const { user, logout, isAuthenticated } = useAuthStore();
+  const { user, logout, isAuthenticated, setUser } = useAuthStore();
   const { mode, setMode } = useThemeStore();
   const router = useRouter();
+  const { message: msg } = App.useApp();
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showMembershipModal, setShowMembershipModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -46,6 +50,8 @@ export default function MobileMePage() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackRating, setFeedbackRating] = useState(0);
+  const [upgrading, setUpgrading] = useState(false);
+  const [selectedMonths, setSelectedMonths] = useState(1);
 
   const handleLogout = () => {
     logout();
@@ -59,7 +65,54 @@ export default function MobileMePage() {
   };
 
   const handleUpgrade = () => {
+    setSelectedMonths(1);
     setShowMembershipModal(true);
+  };
+
+  const handleConfirmUpgrade = async () => {
+    try {
+      setUpgrading(true);
+      const res = await paymentApi.upgrade(selectedMonths);
+      const order = (res.data as any)?.data;
+      if (!order?.pay_url) {
+        msg.error('创建订单失败');
+        return;
+      }
+
+      const payWin = window.open(order.pay_url, '_blank', 'width=720,height=640');
+      msg.info(order.mode === 'sandbox' ? '沙箱模式：请在弹出页确认支付' : '请在新窗口完成支付');
+
+      const orderId = order.order_id as string;
+      let tries = 0;
+      const timer = setInterval(async () => {
+        tries += 1;
+        try {
+          const st = await paymentApi.getOrder(orderId);
+          const status = (st.data as any)?.data?.status;
+          if (status === 'paid') {
+            clearInterval(timer);
+            msg.success('支付成功，高级版已开通！');
+            try { payWin?.close(); } catch {}
+            try {
+              const profileRes = await authApi.getProfile();
+              const profile = (profileRes.data as any)?.data;
+              if (profile) setUser(profile);
+            } catch {}
+            setShowMembershipModal(false);
+          }
+        } catch {
+          /* 忽略单次轮询失败 */
+        }
+        if (tries >= 60) {
+          clearInterval(timer);
+        }
+      }, 5000);
+    } catch (e: any) {
+      const errMsg = (e as any)?.response?.data?.detail || (e as any)?.message || '升级失败';
+      msg.error(errMsg);
+    } finally {
+      setUpgrading(false);
+    }
   };
 
   const handleNotificationSettings = () => {
@@ -87,20 +140,25 @@ export default function MobileMePage() {
     setFeedbackRating(0);
   };
 
-  // 会员权益对比数据
+  // 会员权益对比数据（与 PC 端 /pc/plans 保持一致）
   const membershipPlans = [
-    { feature: '作品数量上限', free: '10个', premium: '无限制', freeOk: true, premiumOk: true },
-    { feature: '单次处理页数', free: '50页', premium: '200页', freeOk: true, premiumOk: true },
     { feature: '基础翻译引擎', free: '✅', premium: '✅', freeOk: true, premiumOk: true },
-    { feature: '多模态上下文翻译', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
-    { feature: '超分辨率增强', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
-    { feature: '扫描件修复', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
-    { feature: '画质增强', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
-    { feature: '角色化语气翻译', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '单页/批量导出', free: '✅', premium: '✅', freeOk: true, premiumOk: true },
+    { feature: '双语阅读器', free: '✅', premium: '✅', freeOk: true, premiumOk: true },
+    { feature: '回收站功能', free: '✅', premium: '✅', freeOk: true, premiumOk: true },
+    { feature: '作品数量上限', free: '10个', premium: '无限制', freeOk: true, premiumOk: true },
+    { feature: '每日处理页数', free: '10页', premium: '无限制', freeOk: true, premiumOk: true },
+    { feature: '多模态翻译引擎', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '角色语气一致性', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '超分辨率画质增强', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '角色分声 TTS', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
     { feature: '自定义字体上传', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
-    { feature: '批量导出', free: '✅', premium: '✅', freeOk: true, premiumOk: true },
-    { feature: '双语对照导出', free: '✅', premium: '✅', freeOk: true, premiumOk: true },
-    { feature: '优先处理队列', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: 'API 开放平台', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '无水印导出', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '有声剧场模式', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '动态漫画生成', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '团队协作基础', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
+    { feature: '优先客服支持', free: '❌', premium: '✅', freeOk: false, premiumOk: true },
   ];
 
   return (
@@ -285,18 +343,18 @@ export default function MobileMePage() {
           <div className="flex justify-between items-center mb-3 px-2">
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-slate-500">免费版</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400">免费</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">免费版</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">¥0</span>
               </div>
             </div>
             <div className="flex-1 text-right">
               <div className="flex items-center gap-1.5 justify-end">
-                <span className="text-xs font-medium text-purple-600 dark:text-purple-400">高级版</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">¥99 永久</span>
+                <span className="text-sm font-bold text-purple-600 dark:text-purple-400">高级版</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">¥29/月</span>
               </div>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-[40vh] overflow-y-auto">
             {membershipPlans.map((plan, idx) => (
               <div key={idx} className="flex items-center py-2 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
                 <span className="flex-1 text-xs text-slate-600 dark:text-slate-400">{plan.feature}</span>
@@ -305,10 +363,51 @@ export default function MobileMePage() {
               </div>
             ))}
           </div>
-          <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-700 dark:text-amber-400">
-            <Info size={12} className="inline mr-1" />
-            高级版一次性买断，永久解锁全部高级权益
-          </div>
+
+          {user?.plan_type !== 'premium' && (
+            <div className="mt-4 space-y-3">
+              <div className="flex gap-2">
+                {[
+                  { value: 1, label: '1个月', price: 29 },
+                  { value: 3, label: '3个月', price: 79, badge: '省¥8' },
+                  { value: 12, label: '12个月', price: 299, badge: '省¥49' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setSelectedMonths(option.value)}
+                    disabled={upgrading}
+                    className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                      selectedMonths === option.value
+                        ? 'border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-purple-300'
+                    }`}
+                  >
+                    <div>{option.label}</div>
+                    <div className="font-bold">¥{option.price}</div>
+                    {option.badge && <div className="text-[10px] text-amber-500">{option.badge}</div>}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleConfirmUpgrade}
+                disabled={upgrading}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-sm disabled:opacity-60"
+              >
+                {upgrading ? '处理中...' : `立即升级 - ¥${selectedMonths === 1 ? 29 : selectedMonths === 3 ? 79 : 299}`}
+              </button>
+              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-[10px] text-amber-700 dark:text-amber-400 text-center">
+                <Info size={12} className="inline mr-1" />
+                支付成功后立即生效，支持微信/支付宝
+              </div>
+            </div>
+          )}
+
+          {user?.plan_type === 'premium' && (
+            <div className="mt-4 p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-xs text-purple-700 dark:text-purple-400 text-center">
+              <Crown size={14} className="inline mr-1" />
+              您已是高级版用户
+            </div>
+          )}
         </div>
       </Modal>
 

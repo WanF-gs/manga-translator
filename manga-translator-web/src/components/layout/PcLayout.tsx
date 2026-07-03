@@ -19,10 +19,7 @@ import {
   Moon,
   Type,
   Key,
-  Search,
   GraduationCap,
-  Headphones,
-  Film,
   CreditCard,
   Bell,
   ChevronLeft,
@@ -74,9 +71,6 @@ const MOBILE_BREAKPOINT = 768;
 const NAV_ITEMS = [  { key: '/', label: '作品列表', icon: Home, href: '/pc' },
   { key: '/pc/upload', label: '上传翻译', icon: Upload, href: '/pc/upload' },
   { key: '/pc/fonts', label: '字体管理', icon: Type, href: '/pc/fonts' },
-  { key: '/pc/search', label: '跨作品搜索', icon: Search, href: '/pc/search' },
-  { key: '/pc/audio', label: '音频剧场', icon: Headphones, href: '/pc/audio' },
-  { key: '/pc/dynamic-manga', label: '动态漫画', icon: Film, href: '/pc/dynamic-manga' },
   { key: '/pc/learn', label: '学习中心', icon: GraduationCap, href: '/pc/learn' },
   { key: '/pc/plans', label: '订阅方案', icon: CreditCard, href: '/pc/plans' },
   { key: '/pc/api-keys', label: 'API 密钥', icon: Key, href: '/pc/api-keys' },
@@ -165,7 +159,7 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
       ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-surface-dark dark:via-slate-900 dark:to-blue-950/20">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/20 dark:from-surface-dark dark:via-slate-900 dark:to-blue-950/15">
       <SkipToContent />
       <NavigationProgress />
       <RoutePrefetcher routes={prefetchRoutes} enabled={hasAuth} />
@@ -175,7 +169,7 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
         <button
           type="button"
           aria-label="关闭菜单"
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -184,7 +178,7 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
       {!isEditorPage && (
         <aside
           className={clsx(
-            'flex flex-col bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200/60 dark:border-slate-800/60 transition-all duration-300 ease-out z-50',
+            'flex flex-col bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-r border-slate-200/40 dark:border-slate-800/40 transition-all duration-300 ease-out z-50',
             isMobile
               ? clsx('fixed inset-y-0 left-0 shadow-2xl w-[min(17rem,85vw)]', sidebarOpen ? 'translate-x-0' : '-translate-x-full')
               : sidebarOpen ? 'w-60' : 'w-[4.25rem]'
@@ -192,13 +186,13 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
         >
           {/* Logo区域 */}
           <div className={clsx(
-            'flex items-center h-14 border-b border-slate-200/60 dark:border-slate-800/60',
+            'flex items-center h-14 border-b border-slate-200/40 dark:border-slate-800/40',
             sidebarOpen ? 'justify-between px-4' : 'justify-center'
           )}>
             {sidebarOpen && (
               <Link href="/pc" className="flex items-center gap-2.5 group">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm shadow-primary-500/25 group-hover:shadow-md group-hover:shadow-primary-500/30 transition-shadow">
-                  <Sparkles className="w-4.5 h-4.5 text-white" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 via-blue-500 to-primary-600 dark:from-primary-500 dark:via-blue-600 dark:to-primary-700 flex items-center justify-center shadow-sm shadow-primary-500/25 group-hover:shadow-md group-hover:shadow-primary-500/35 transition-all duration-200 group-hover:scale-105">
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-bold text-sm text-slate-900 dark:text-white tracking-tight">
                   Manga TL
@@ -232,24 +226,25 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
                   prefetch={true}
                   onClick={closeMobileSidebar}
                   className={clsx(
-                    'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 ease-out',
+                    'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 ease-out relative',
                     sidebarOpen ? 'px-3 py-2.5' : 'px-2 py-2.5 justify-center',
                     isActive
-                      ? 'bg-primary-50 text-primary-700 shadow-sm dark:bg-primary-900/40 dark:text-primary-300 dark:shadow-primary-900/20'
+                      ? 'bg-primary-50/80 text-primary-700 shadow-sm dark:bg-primary-950/40 dark:text-primary-300'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-200'
                   )}
                   title={!sidebarOpen ? item.label : undefined}
                   style={{ animationDelay: `${index * 0.03}s` }}
                 >
+                  {/* 激活态左侧彩色指示条 */}
+                  {isActive && sidebarOpen && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-gradient-to-b from-primary-500 to-accent-500" />
+                  )}
                   <item.icon size={sidebarOpen ? 18 : 20} className={clsx(
-                    'flex-shrink-0 transition-transform duration-200',
-                    isActive && 'scale-110'
+                    'flex-shrink-0 transition-all duration-200',
+                    isActive && 'scale-110 text-primary-600 dark:text-primary-400'
                   )} />
                   {sidebarOpen && (
                     <span className="truncate">{item.label}</span>
-                  )}
-                  {isActive && sidebarOpen && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 dark:bg-primary-400" />
                   )}
                 </Link>
               );
@@ -258,17 +253,17 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
 
           {/* 用户区域 */}
           <div className={clsx(
-            'border-t border-slate-200/60 dark:border-slate-800/60',
+            'border-t border-slate-200/40 dark:border-slate-800/40',
             sidebarOpen ? 'p-3' : 'p-2'
           )}>
             {sidebarOpen ? (
               <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="topRight">
                 <button
                   type="button"
-                  className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition-all duration-200"
+                  className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 text-left transition-all duration-200 group"
                   aria-label="用户菜单"
                 >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 dark:from-primary-500 dark:to-primary-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 via-blue-500 to-primary-600 dark:from-primary-500 dark:via-blue-600 dark:to-primary-700 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow-md transition-all duration-200">
                     <User size={16} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -278,7 +273,7 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
                           {user.nickname}
                         </p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                          {user.plan_type === 'premium' ? '✨ 高级版' : '免费版'} · 点击打开菜单
+                          {user.plan_type === 'premium' ? 'Premium' : '免费版'} · 点击打开菜单
                         </p>
                       </>
                     ) : (
@@ -297,13 +292,13 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
             ) : (
               <div className="flex flex-col items-center gap-2.5">
                 {user ? (
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-sm">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 via-blue-500 to-primary-600 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200">
                     <User size={16} className="text-white" />
                   </div>
                 ) : (
                   <Link
                     href="/login"
-                    className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-sm"
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 via-blue-500 to-primary-600 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200"
                     title="登录"
                   >
                     <User size={16} className="text-white" />
@@ -311,7 +306,7 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
                 )}
                 <button
                   onClick={toggleTheme}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
                   title={resolved === 'dark' ? '切换浅色模式' : '切换深色模式'}
                 >
                   {resolved === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
@@ -335,7 +330,7 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 顶部栏 */}
         {!isEditorPage && (
-          <div className="flex items-center justify-between px-5 py-2.5 gap-2 border-b border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl">
+          <div className="flex items-center justify-between px-5 py-2.5 gap-3 border-b border-slate-200/30 dark:border-slate-800/30 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-sm">
             {isMobile && (
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -386,12 +381,14 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
         </main>
       </div>
       {/* P1 Onboarding: Show tutorial for first-time users */}
-      {hasAuth && (
-        <OnboardingWizard
-          visible={!useOnboardingStore.getState().hasCompletedTutorial}
-          onClose={() => useOnboardingStore.getState().dismissTutorial()}
-        />
-      )}
+      <OnboardingWizardWrapper />
     </div>
   );
 };
+
+// P1 Onboarding wrapper — MUST use Zustand hook (not getState snapshot) for reactivity
+function OnboardingWizardWrapper() {
+  const hasCompleted = useOnboardingStore((s) => s.hasCompletedTutorial);
+  const dismiss = useOnboardingStore((s) => s.dismissTutorial);
+  return hasCompleted ? null : <OnboardingWizard visible={true} onClose={dismiss} />;
+}

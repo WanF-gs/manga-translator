@@ -1,27 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+
 import Link from 'next/link';
-import { Spin, message, Modal, Input } from 'antd';
+import { Spin, Modal, Input } from 'antd';
+
 import {
   Plus,
   Search,
   Star,
-  Clock,
-  CheckCircle2,
-  Image,
-  Play,
+  Image as ImageIcon,
   AlertCircle,
   RefreshCw,
   Edit3,
   Monitor,
+  Upload,
+  Trash2,
+  X,
 } from 'lucide-react';
+
+
+
+
 import clsx from 'clsx';
 import { useProjects, useGenericMutation } from '@/hooks/useApiQueries';
 import { queryKeys } from '@/hooks/useApiQueries';
 import { projectApi } from '@/services/project';
-import type { ProjectData } from '@/types';
+import { pageApi } from '@/services/page';
+import type { ProjectData, CreateProjectParams, SourceLang } from '@/types';
 import { ContinueOnPC } from '@/components/common/ContinueOnPC';
+import { App, Progress, Modal as AntModal } from 'antd';
+
 
 const LANG_FLAGS: Record<string, string> = {
   ja: '🇯🇵',
@@ -42,7 +51,22 @@ function formatTime(dateStr: string): string {
   return date.toLocaleDateString('zh-CN');
 }
 
+const LANG_OPTIONS: { value: SourceLang; label: string }[] = [
+  { value: 'ja', label: '🇯🇵 日文' },
+  { value: 'zh', label: '🇨🇳 中文' },
+  { value: 'en', label: '🇺🇸 英文' },
+  { value: 'ko', label: '🇰🇷 韩文' },
+];
+
+const TARGET_LANG_OPTIONS = [
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'en', label: '英语' },
+  { value: 'ja', label: '日语' },
+  { value: 'ko', label: '韩语' },
+];
+
 export default function MobileProjectsPage() {
+  const { message: antMessage } = App.useApp();
   // P0: 迁移到 React Query
   const { data: projects = [], isLoading: loading, isError, error: queryError, refetch } = useProjects();
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +75,17 @@ export default function MobileProjectsPage() {
   const [editName, setEditName] = useState('');
   // 删除确认
   const [deleteProject, setDeleteProject] = useState<ProjectData | null>(null);
+
+  // 新建作品 / 上传
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [sourceLang, setSourceLang] = useState<SourceLang>('ja');
+  const [targetLang, setTargetLang] = useState('zh-CN');
+  const [files, setFiles] = useState<File[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
 
   // P0: 使用 React Query mutation 管理重命名（带缓存失效）
   const renameMutation = useGenericMutation<unknown, { projectId: string; name: string }>({
@@ -68,7 +103,90 @@ export default function MobileProjectsPage() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // ===== 新建作品 + 上传 =====
+  const handleCreateProject = useCallback(async () => {
+    if (!createName.trim()) {
+      antMessage.warning('请输入作品名称');
+      return;
+    }
+    setCreating(true);
+    setUploadProgress(0);
+    try {
+      const projectRes = await projectApi.create({
+        name: createName.trim(),
+        source_lang: sourceLang,
+        default_target_lang: targetLang,
+      } as CreateProjectParams);
+      const projectId = (projectRes.data as any).data?.project_id || (projectRes.data as any).project_id;
+      if (!projectId) throw new Error('创建作品失败');
+
+      let firstPageId: string | undefined;
+
+      if (files.length > 0) {
+        const chapterRes = await projectApi.createChapter(projectId, { name: '第1话' });
+        const chapterId = (chapterRes.data as any).data?.chapter_id || (chapterRes.data as any).chapter_id;
+        if (!chapterId) throw new Error('创建章节失败');
+
+        const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.tif', '.gif'];
+        const archiveFiles = files.filter((f) => {
+          const ext = '.' + f.name.split('.').pop()?.toLowerCase();
+          return ['.zip', '.cbz', '.rar', '.cbr', '.7z', '.cb7', '.pdf'].includes(ext);
+        });
+        const imageFiles = files.filter((f) => {
+          const ext = '.' + f.name.split('.').pop()?.toLowerCase();
+          return IMAGE_EXTS.includes(ext);
+        });
+
+        if (imageFiles.length > 0) {
+          const formData = new FormData();
+          imageFiles.forEach((f) => formData.append('files', f));
+          const uploadRes = await pageApi.upload(chapterId, formData, (pct) => setUploadProgress(pct));
+          const pages = (uploadRes.data as any).data?.pages || [];
+          firstPageId = pages[0]?.page_id;
+        }
+
+        for (const archive of archiveFiles) {
+          const formData = new FormData();
+          formData.append('file', archive);
+          const archiveRes = await pageApi.uploadArchive(chapterId, formData, (pct) => setUploadProgress(pct));
+          if (!firstPageId) {
+            const pages = (archiveRes.data as any).data?.pages || [];
+            firstPageId = pages[0]?.page_id;
+          }
+        }
+      }
+
+      antMessage.success('创建成功');
+      setCreateOpen(false);
+      setCreateName('');
+      setFiles([]);
+      refetch();
+      const query = firstPageId ? `?page=${firstPageId}` : '';
+      window.location.href = `/m/projects/${projectId}/edit${query}`;
+    } catch (err: any) {
+      antMessage.error(err?.message || '创建失败');
+    } finally {
+      setCreating(false);
+      setUploadProgress(0);
+    }
+  }, [createName, sourceLang, targetLang, files, antMessage, refetch]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selected = Array.from(e.target.files).slice(0, 50);
+      setFiles((prev) => [...prev, ...selected].slice(0, 50));
+      e.target.value = '';
+    }
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   // ===== 轻量编辑：重命名 =====
+
   const handleOpenEdit = (project: ProjectData) => {
     setEditProject(project);
     setEditName(project.name);
@@ -80,12 +198,13 @@ export default function MobileProjectsPage() {
       { projectId: editProject.project_id, name: editName.trim() },
       {
         onSuccess: () => {
-          message.success('已更新');
+          antMessage.success('已更新');
           setEditProject(null);
         },
         onError: (err: any) => {
-          message.error(err?.message || '更新失败');
+          antMessage.error(err?.message || '更新失败');
         },
+
       }
     );
   };
@@ -99,13 +218,14 @@ export default function MobileProjectsPage() {
     if (!deleteProject) return;
     deleteMutation.mutate(deleteProject.project_id, {
       onSuccess: () => {
-        message.success('已移至回收站');
+        antMessage.success('已移至回收站');
         setDeleteProject(null);
       },
       onError: (err: any) => {
-        message.error(err?.message || '删除失败');
+        antMessage.error(err?.message || '删除失败');
       },
     });
+
   };
 
   return (
@@ -148,7 +268,8 @@ export default function MobileProjectsPage() {
 
         {!loading && !isError && filtered.length === 0 && (
           <div className="flex flex-col items-center py-20 text-slate-400">
-            <Image size={64} className="mb-4 opacity-50" />
+            <ImageIcon size={64} className="mb-4 opacity-50" />
+
             <p className="text-lg font-medium">
               {searchQuery ? '没有匹配的作品' : '还没有作品'}
             </p>
@@ -171,7 +292,7 @@ export default function MobileProjectsPage() {
                 >
                   {/* 封面 */}
                   <Link
-                    href={`/pc/projects/${project.project_id}`}
+                    href={`/m/projects/${project.project_id}/edit`}
                     className="w-14 h-20 rounded-lg bg-gradient-to-br from-primary-400 to-purple-400 flex-shrink-0 flex items-center justify-center relative overflow-hidden active:scale-[0.98] transition-transform"
                   >
                     <span className="text-2xl">
@@ -193,9 +314,10 @@ export default function MobileProjectsPage() {
 
                   {/* 信息 */}
                   <Link
-                    href={`/pc/projects/${project.project_id}`}
+                    href={`/m/projects/${project.project_id}/edit`}
                     className="flex-1 min-w-0"
                   >
+
                     <div className="flex items-center gap-1">
                       <h3 className="text-sm font-medium text-slate-900 dark:text-white truncate">
                         {project.name}
@@ -220,25 +342,144 @@ export default function MobileProjectsPage() {
 
                   {/* 操作按钮 */}
                   <div className="flex flex-col gap-1 flex-shrink-0">
+                    <Link
+                      href={`/m/projects/${project.project_id}/edit`}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+                      title="编辑"
+                    >
+                      <Edit3 size={14} />
+                    </Link>
                     <button
                       onClick={() => handleOpenEdit(project)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
                       title="重命名"
                     >
-                      <Edit3 size={14} />
+                      <Monitor size={14} />
                     </button>
-                    <ContinueOnPC
-                      triggerText=""
-                      targetUrl={`/pc/projects/${project.project_id}`}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-                    />
+                    <button
+                      onClick={() => handleOpenDelete(project)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      title="删除"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+
                   </div>
+
+
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* 新建作品浮动按钮 */}
+      <button
+        onClick={() => setCreateOpen(true)}
+        className="fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full bg-primary-500 shadow-lg shadow-primary-500/30 flex items-center justify-center active:scale-95 transition-transform"
+      >
+        <Plus size={28} className="text-white" />
+      </button>
+
+      {/* ===== 新建作品弹窗 ===== */}
+      <AntModal
+        title="新建作品"
+        open={createOpen}
+        onOk={handleCreateProject}
+        onCancel={() => {
+          if (!creating) {
+            setCreateOpen(false);
+            setFiles([]);
+            setCreateName('');
+          }
+        }}
+        confirmLoading={creating}
+        okText={files.length > 0 ? '创建并上传' : '创建空项目'}
+        cancelText={creating ? '取消' : '关闭'}
+        centered
+        width={360}
+      >
+        <div className="py-2 space-y-3">
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">作品名称</label>
+            <Input
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="例如：海贼王 第1088话"
+              maxLength={100}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">源语言</label>
+            <select
+              value={sourceLang}
+              onChange={(e) => setSourceLang(e.target.value as SourceLang)}
+              className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+            >
+              {LANG_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">目标语言</label>
+            <select
+              value={targetLang}
+              onChange={(e) => setTargetLang(e.target.value)}
+              className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+            >
+              {TARGET_LANG_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">
+              上传漫画 <span className="text-slate-300 font-normal">（可选）</span>
+            </label>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center gap-1 text-slate-400 hover:border-primary-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Upload size={24} />
+              <span className="text-xs">点击选择图片/压缩包/PDF</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".jpg,.jpeg,.png,.webp,.cbz,.zip,.rar,.7z,.pdf"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            {files.length > 0 && (
+              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 rounded text-xs">
+                    <span className="flex-1 truncate">{f.name}</span>
+                    <span className="text-slate-400">{formatSize(f.size)}</span>
+                    <button
+                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="p-0.5 text-slate-400 hover:text-red-500"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {creating && uploadProgress > 0 && (
+              <div className="mt-2">
+                <Progress percent={uploadProgress} status="active" size="small" />
+                <p className="text-xs text-slate-400 mt-1">正在上传 {uploadProgress}%</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </AntModal>
 
       {/* ===== 重命名弹窗 ===== */}
       <Modal
@@ -259,9 +500,6 @@ export default function MobileProjectsPage() {
             maxLength={100}
             autoFocus
           />
-          <p className="text-xs text-slate-400 mt-2">
-            如需进行文字编辑、样式调整等操作，请在电脑端打开编辑器
-          </p>
           {editProject && (
             <div className="mt-3">
               <ContinueOnPC
@@ -271,6 +509,7 @@ export default function MobileProjectsPage() {
           )}
         </div>
       </Modal>
+
 
       {/* ===== 删除确认弹窗 ===== */}
       <Modal

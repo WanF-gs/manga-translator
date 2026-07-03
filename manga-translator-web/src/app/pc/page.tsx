@@ -18,18 +18,21 @@ import {
   Grid3X3,
   List,
   ArrowUpDown,
+  Sparkles,
   Languages,
-  BookOpen,
   RefreshCw,
   AlertCircle,
   X,
   LogIn,
+  Crown,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { projectApi } from '@/services/project';
 import { useProjects } from '@/hooks/useApiQueries';
 import { useAuthHydrated, useHasAuth } from '@/hooks/useAuthHydrated';
 import { useOptimisticMutation } from '@/hooks/useQueryState';
+import { ProgressiveImage } from '@/components/common/ProgressiveImage';
+import { resolveProcessedImageUrl } from '@/utils/pageImage';
 import type { ProjectData, CreateProjectParams, SourceLang } from '@/types';
 
 // ===== 时间格式化 =====
@@ -98,19 +101,32 @@ function ProjectCard({
     ? (project.completed_count || 0) / project.page_count
     : 0;
   const isCompleted = progress >= 1;
+  const coverUrl = resolveProcessedImageUrl(project.cover_url);
 
   return (
     <div className="glass-card-hover group block overflow-hidden relative animate-slide-up">
       <Link href={`/pc/projects/${project.project_id}`}>
         {/* 封面区域 */}
         <div className="relative aspect-[3/4] bg-slate-100 dark:bg-slate-800 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-violet-500 to-rose-400 opacity-85 dark:from-primary-600 dark:via-violet-600 dark:to-rose-500 group-hover:opacity-95 transition-opacity duration-300" />
-          {/* 装饰几何形状 */}
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 dark:bg-white/5 group-hover:scale-125 transition-transform duration-500" />
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10 dark:bg-white/5 group-hover:scale-110 transition-transform duration-500 delay-75" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image size={44} className="text-white/50 group-hover:scale-110 transition-transform duration-300" />
-          </div>
+          {coverUrl ? (
+            <ProgressiveImage
+              src={coverUrl}
+              alt={project.name}
+              aspectRatio="3/4"
+              className="absolute inset-0 w-full h-full"
+              lazy={true}
+            />
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-violet-500 to-rose-400 opacity-85 dark:from-primary-600 dark:via-violet-600 dark:to-rose-500 group-hover:opacity-95 transition-opacity duration-300" />
+              {/* 装饰几何形状 */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 dark:bg-white/5 group-hover:scale-125 transition-transform duration-500" />
+              <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10 dark:bg-white/5 group-hover:scale-110 transition-transform duration-500 delay-75" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Image size={44} className="text-white/50 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+            </>
+          )}
 
           {/* 收藏标记 */}
           {project.is_favorite && (
@@ -577,6 +593,7 @@ function ProjectListPageContent() {
   const searchParams = useSearchParams();
   const authReady = useAuthHydrated();
   const hasAuth = useHasAuth();
+  const { user } = useAuthStore();
 
   // FIX: P0-登录态数据加载 - 使用 store 的 _hydrated 替代本地 useState
   // store._hydrated 由 onRehydrateStorage 回调设置，确保与 isAuthenticated 同步
@@ -639,14 +656,6 @@ function ProjectListPageContent() {
   const handleQuickTranslate = useCallback(() => {
     router.push(hasAuth ? '/pc/upload' : '/login?redirect=/pc/upload');
   }, [hasAuth, router]);
-
-  const handleContinueReading = useCallback(() => {
-    router.push('/pc/reader/sample-project');
-  }, [router]);
-
-  const handleSampleProject = useCallback(() => {
-    router.push('/pc/reader/sample-project');
-  }, [router]);
 
   // ===== React Query 数据获取 =====
   const { data: projects = [], isLoading: loading, error, refetch } = useProjects({ sort_by: sortBy });
@@ -726,8 +735,13 @@ function ProjectListPageContent() {
     return (
       <div className="h-full overflow-y-auto" data-testid="guest-guide-page">
         <div className="max-w-xl mx-auto px-6 py-20 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-400 via-primary-500 to-violet-500 mb-6 shadow-lg shadow-primary-500/25">
-            <Image size={36} className="text-white/80" />
+          <div className="relative inline-flex">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-400 via-blue-500 to-violet-500 mb-6 shadow-lg shadow-primary-500/25">
+              <Image size={36} className="text-white/80" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md animate-float">
+              <Sparkles size={12} className="text-white" />
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">
             漫画翻译工作台
@@ -740,7 +754,7 @@ function ProjectListPageContent() {
               <LogIn size={18} />
               登录
             </Link>
-            <Link href="/register" className="btn-ghost py-3 px-8 text-base border border-slate-200 dark:border-slate-700 rounded-xl">
+            <Link href="/register" className="btn-secondary py-3 px-8 text-base">
               注册账号
             </Link>
           </div>
@@ -849,9 +863,34 @@ function ProjectListPageContent() {
 
       {/* 内容区域 */}
       <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* 免费用户订阅引导 Banner */}
+        {user?.plan_type !== 'premium' && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-purple-50/50 to-blue-50 dark:from-amber-950/20 dark:via-purple-950/15 dark:to-blue-950/15 border border-amber-200/60 dark:border-amber-800/30 flex items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-amber-500/30">
+                <Crown size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  升级高级版，解锁无限翻译
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  当前为免费版：每日 10 页、最多 10 个作品。高级版 ¥29/月起，畅享全部 AI 能力。
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/pc/plans')}
+              className="flex-shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-sm font-semibold transition-all duration-200 shadow-sm shadow-purple-500/25 hover:shadow-md hover:shadow-purple-500/30"
+            >
+              立即升级
+            </button>
+          </div>
+        )}
+
         {/* 快速操作卡片 - Bento Grid 风格 */}
         <div className="mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
             {/* 上传漫画 */}
             <div
               role="button"
@@ -895,54 +934,6 @@ function ProjectListPageContent() {
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                     拍照或选图，一键翻译导出
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 继续阅读 */}
-            <div
-              role="button"
-              tabIndex={0}
-              className="glass-card p-5 cursor-pointer group relative overflow-hidden"
-              onClick={handleContinueReading}
-              onKeyDown={(e) => e.key === 'Enter' && handleContinueReading()}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent dark:from-purple-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative flex items-start gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 flex items-center justify-center flex-shrink-0 shadow-sm shadow-purple-500/20 group-hover:shadow-md group-hover:shadow-purple-500/30 group-hover:scale-105 transition-all duration-300">
-                  <BookOpen size={22} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-                    继续阅读
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    打开双语阅读器，继续上次进度
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 示例项目 */}
-            <div
-              role="button"
-              tabIndex={0}
-              className="glass-card p-5 cursor-pointer group relative overflow-hidden"
-              onClick={handleSampleProject}
-              onKeyDown={(e) => e.key === 'Enter' && handleSampleProject()}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent dark:from-emerald-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative flex items-start gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center flex-shrink-0 shadow-sm shadow-emerald-500/20 group-hover:shadow-md group-hover:shadow-emerald-500/30 group-hover:scale-105 transition-all duration-300">
-                  <BookOpen size={22} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-                    示例项目
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    体验完整翻译与双语阅读流程
                   </p>
                 </div>
               </div>
@@ -1028,7 +1019,15 @@ function ProjectListPageContent() {
                       href={`/pc/projects/${project.project_id}`}
                       className="flex items-center gap-4 flex-1 min-w-0"
                     >
+                    {resolveProcessedImageUrl(project.cover_url) ? (
+                      <img
+                        src={resolveProcessedImageUrl(project.cover_url)!}
+                        alt={project.name}
+                        className="w-12 h-16 rounded-lg object-cover flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow"
+                      />
+                    ) : (
                       <div className="w-12 h-16 rounded-lg bg-gradient-to-br from-primary-400 via-violet-400 to-rose-400 flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow" />
+                    )}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                           {project.name}

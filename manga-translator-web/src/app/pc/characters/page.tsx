@@ -11,6 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { characterApi, type CharacterData, type ToneType } from '@/services/character';
+import { fontApi, type FontData } from '@/services/font';
 
 const TONE_OPTIONS: { value: ToneType; label: string; icon: React.ReactNode; color: string }[] = [
   { value: 'tsundere', label: '傲娇', icon: <Smile size={14} />, color: '#f59e0b' },
@@ -56,6 +57,17 @@ export default function CharactersPage() {
     },
     enabled: !!projectId,
     staleTime: 30_000,
+  });
+
+  // ── v3.0: 字体列表（角色绑定字体用）──
+  const { data: fontList } = useQuery({
+    queryKey: ['fonts', 'character-bind'],
+    queryFn: async () => {
+      const res = await fontApi.getList({ is_active: true, page_size: 100 });
+      return (res.data?.data?.items || []) as FontData[];
+    },
+    staleTime: 120_000,
+    retry: 1,
   });
 
   const saveMutation = useMutation({
@@ -207,14 +219,23 @@ export default function CharactersPage() {
     {
       title: '特性',
       key: 'features',
-      width: 180,
-      render: (_: unknown, record: CharacterData) => (
-        <Space size={4} wrap>
-          {record.voice_id && <Tag color="purple"><Volume2 size={10} /> 配音</Tag>}
-          {record.font_id && <Tag color="blue"><Type size={10} /> 字体</Tag>}
-          {record.visual_features && <Tag color="cyan"><Star size={10} /> 视觉</Tag>}
-        </Space>
-      ),
+      width: 200,
+      render: (_: unknown, record: CharacterData) => {
+        const boundFont = record.font_id
+          ? (fontList || []).find((f) => f.font_id === record.font_id)
+          : null;
+        return (
+          <Space size={4} wrap>
+            {record.voice_id && <Tag color="purple"><Volume2 size={10} /> 配音</Tag>}
+            {record.font_id && (
+              <Tooltip title={boundFont ? `${boundFont.name}${boundFont.style_tags?.length ? ` · ${boundFont.style_tags.join('·')}` : ''}` : '已绑定字体'}>
+                <Tag color="blue"><Type size={10} /> {boundFont?.name || '字体'}</Tag>
+              </Tooltip>
+            )}
+            {record.visual_features && <Tag color="cyan"><Star size={10} /> 视觉</Tag>}
+          </Space>
+        );
+      },
     },
     {
       title: '操作',
@@ -360,6 +381,23 @@ export default function CharactersPage() {
           )}
           <Form.Item name="visual_features" label="视觉特征">
             <Input placeholder="如：黑色长发、眼镜、制服" />
+          </Form.Item>
+          {/* ── v3.0: 字体绑定 —— */}
+          <Form.Item name="font_id" label="绑定专属字体">
+            <Select
+              placeholder="无绑定（使用区域默认字体）"
+              allowClear
+              showSearch
+              filterOption={(input, option) =>
+                String(option?.label || '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={(fontList || [])
+                .filter((f) => f.is_active)
+                .map((f) => ({
+                  value: f.font_id,
+                  label: `${f.name}${f.style_tags?.length ? ` · ${f.style_tags.slice(0, 2).join('·')}` : ''}`,
+                }))}
+            />
           </Form.Item>
         </Form>
       </Modal>

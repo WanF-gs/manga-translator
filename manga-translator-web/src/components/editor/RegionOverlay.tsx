@@ -6,11 +6,13 @@ import { Tooltip } from 'antd';
 import type { EditorRegion } from './types';
 import { REGION_TYPE_CONFIGS } from './types';
 import type { RegionType } from '@/types';
+import { useFontLoaderContext } from '@/hooks/useFontLoader';
 
 interface RegionOverlayProps {
   regions: EditorRegion[];
   selectedRegionId: string | null;
   showOriginal: boolean;
+  displayMode?: 'original' | 'translated' | 'bilingual';
   scalePercent: number;
   /** 基准图像像素宽度 (= img.naturalWidth, 与容器基底一致) */
   imageWidth: number;
@@ -44,6 +46,7 @@ const PolygonRegion = React.memo(function PolygonRegion({
   region,
   isSelected,
   showOriginal,
+  displayMode,
   scalePercent,
   imageWidth,
   imageHeight,
@@ -54,6 +57,7 @@ const PolygonRegion = React.memo(function PolygonRegion({
   region: EditorRegion;
   isSelected: boolean;
   showOriginal: boolean;
+  displayMode?: 'original' | 'translated' | 'bilingual';
   scalePercent: number;
   imageWidth: number;
   imageHeight: number;
@@ -66,6 +70,13 @@ const PolygonRegion = React.memo(function PolygonRegion({
   const isLowConfidence = region.confidence != null && region.confidence < 0.6;
   const displayScale = (scalePercent / 100) * coordScale;
   const points = region.points ?? [];
+
+  // v3.0: 动态字体 — PolygonRegion 的文字预览也用所选字体
+  const fontLoaderPoly = useFontLoaderContext();
+  const polyFontFamily = fontLoaderPoly.getFontFamily(
+    region.style_config?.font_family,
+    (region.style_config as any)?.font_id
+  );
 
   // 拖拽状态：'poly' 整体移动 / 数字索引=顶点
   const dragRef = useRef<{ mode: 'none' | 'poly' | number; x: number; y: number; snapshot: [number, number][] }>({
@@ -151,6 +162,7 @@ const PolygonRegion = React.memo(function PolygonRegion({
   const strokeColor = isSelected ? '#3B82F6' : isLowConfidence ? '#EF4444' : config.color;
   const bb = bboxOfPoints(points);
   const text = showOriginal ? region.original_text : region.translated_text;
+  const isBilingual = displayMode === 'bilingual';
 
   return (
     <svg
@@ -185,16 +197,30 @@ const PolygonRegion = React.memo(function PolygonRegion({
       </foreignObject>
 
       {/* 文字预览（居中于包围盒） */}
-      {text && (
+      {(text || isBilingual) && (
         <foreignObject
           x={bb.x * displayScale} y={bb.y * displayScale}
           width={bb.w * displayScale} height={bb.h * displayScale}
           style={{ pointerEvents: 'none' }}
         >
-          <div className="w-full h-full flex items-center justify-center p-1 overflow-hidden">
+          <div className="w-full h-full flex flex-col items-center justify-center p-1 overflow-hidden gap-0.5">
+            {isBilingual && region.original_text && (
+              <span className="text-center leading-tight line-clamp-1 select-none"
+                style={{
+                  color: '#6366f1',
+                  fontSize: `${Math.max(9, (region.style_config?.font_size ?? 14) * 0.85 * (scalePercent / 100))}px`,
+                  opacity: 0.9,
+                  backgroundColor: 'rgba(238, 242, 255, 0.75)',
+                  borderRadius: '3px',
+                  padding: '1px 4px',
+                  maxWidth: '100%',
+                }}>
+                {region.original_text}
+              </span>
+            )}
             <span className="text-center leading-tight line-clamp-2 select-none"
-              style={{ color: region.style_config?.color ?? '#1e293b', fontSize: `${Math.max(8, (region.style_config?.font_size ?? 14) * (scalePercent / 100))}px` }}>
-              {text}
+              style={{ color: region.style_config?.color ?? '#1e293b', fontSize: `${Math.max(8, (region.style_config?.font_size ?? 14) * (scalePercent / 100))}px`, fontFamily: polyFontFamily || undefined }}>
+              {isBilingual ? region.translated_text : text}
             </span>
           </div>
         </foreignObject>
@@ -244,6 +270,7 @@ const RegionRect = React.memo(function RegionRect({
   region,
   isSelected,
   showOriginal,
+  displayMode,
   scalePercent,
   imageWidth,
   imageHeight,
@@ -254,6 +281,7 @@ const RegionRect = React.memo(function RegionRect({
   region: EditorRegion;
   isSelected: boolean;
   showOriginal: boolean;
+  displayMode?: 'original' | 'translated' | 'bilingual';
   scalePercent: number;
   imageWidth: number;
   imageHeight: number;
@@ -263,13 +291,24 @@ const RegionRect = React.memo(function RegionRect({
 }) {
   const config = REGION_TYPE_CONFIGS[region.type as RegionType] ?? REGION_TYPE_CONFIGS.speech;
   const text = showOriginal ? region.original_text : region.translated_text;
+  const isBilingual = displayMode === 'bilingual';
   const fontSize = region.style_config?.font_size ?? 14;
   const fontColor = region.style_config?.color ?? '#1e293b';
   const isLocked = region.is_locked;
   const borderWidth = Math.max(3, 6 / (scalePercent / 100));
 
+  // v3.0: 动态字体加载 — 对标 BalloonsTranslator 所见即所得
+  const fontLoader = useFontLoaderContext();
+  // 优先区域显式字体 → 全局默认字体
+  const effectiveFamily = region.style_config?.font_family || fontLoader.defaultFontFamily || undefined;
+  const effectiveFontId = (region.style_config as any)?.font_id || fontLoader.defaultFontId || undefined;
+  const canvasFontFamily = fontLoader.getFontFamily(effectiveFamily, effectiveFontId);
+
   // 低置信度警告
   const isLowConfidence = region.confidence != null && region.confidence < 0.6;
+  // v3.0: 缺字标记
+  const hasMissingGlyphs = region.glyph_status === 'missing' || region.glyph_status === 'warning';
+  const glyphCount = region.glyph_missing_count ?? 0;
 
   // 统一坐标系: displayScale 将自然像素坐标转为屏幕渲染像素
   // renderedX = originalX × (renderedWidth / originalWidth) = originalX × displayScale
@@ -368,36 +407,56 @@ const RegionRect = React.memo(function RegionRect({
           borderWidth,
           borderColor: isSelected
             ? '#3B82F6'
+            : hasMissingGlyphs
+            ? '#EF4444'
             : isLowConfidence
             ? '#EF4444'
             : config.color,
-          borderStyle: isLocked ? 'dashed' : 'solid',
+          borderStyle: hasMissingGlyphs ? 'dashed' : isLocked ? 'dashed' : 'solid',
           touchAction: 'none',
         }}
       >
         {/* 类型标签 */}
-        <Tooltip title={`${config.label}${isLocked ? '（已锁定）' : ''}${isLowConfidence ? ' · 低置信度' : ''}`}>
+        <Tooltip title={`${config.label}${isLocked ? '（已锁定）' : ''}${isLowConfidence ? ' · 低置信度' : ''}${hasMissingGlyphs ? ` · 缺${glyphCount}字` : ''}`}>
           <span
             className="absolute -top-5 left-0 text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap text-white shadow-sm pointer-events-none max-w-[72px] truncate"
             style={{
-              backgroundColor: isSelected ? '#3B82F6' : isLowConfidence ? '#EF4444' : config.color,
+              backgroundColor: isSelected ? '#3B82F6' : hasMissingGlyphs ? '#EF4444' : isLowConfidence ? '#EF4444' : config.color,
               opacity: isSelected ? 1 : 0.85,
             }}
           >
             {config.label}
             {isLocked && ' 🔒'}
-            {isLowConfidence && isSelected && ' ⚠'}
+            {hasMissingGlyphs && glyphCount > 0 && ` -${glyphCount}`}
+            {isLowConfidence && isSelected && !hasMissingGlyphs && ' ⚠'}
           </span>
         </Tooltip>
 
         {/* 文字预览 */}
         <div
-          className="absolute inset-0 flex items-center justify-center p-1 overflow-hidden pointer-events-none"
+          className="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden pointer-events-none gap-0.5"
           style={{
             color: fontColor,
             fontSize: `${Math.max(8, fontSize * (scalePercent / 100))}px`,
+            fontFamily: canvasFontFamily || undefined,
           }}
         >
+          {isBilingual && region.original_text && (
+            <span
+              className="text-center leading-tight line-clamp-1 select-none w-full"
+              style={{
+                color: '#6366f1',
+                fontSize: `${Math.max(9, fontSize * 0.85 * (scalePercent / 100))}px`,
+                opacity: 0.9,
+                backgroundColor: 'rgba(238, 242, 255, 0.75)',
+                borderRadius: '3px',
+                padding: '1px 4px',
+                maxWidth: '100%',
+              }}
+            >
+              {region.original_text}
+            </span>
+          )}
           <span
             className="text-center leading-tight line-clamp-2 select-none"
             style={{
@@ -406,7 +465,7 @@ const RegionRect = React.memo(function RegionRect({
                 : undefined,
             }}
           >
-            {text || '...'}
+            {(isBilingual ? region.translated_text : text) || '...'}
           </span>
         </div>
 
@@ -507,6 +566,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
   regions,
   selectedRegionId,
   showOriginal,
+  displayMode = 'translated',
   scalePercent,
   imageWidth,
   imageHeight,
@@ -558,6 +618,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
               region={region}
               isSelected={isSelected}
               showOriginal={showOriginal}
+              displayMode={displayMode}
               scalePercent={scalePercent}
               imageWidth={imageWidth}
               imageHeight={imageHeight}
@@ -573,6 +634,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
             region={region}
             isSelected={isSelected}
             showOriginal={showOriginal}
+            displayMode={displayMode}
             scalePercent={scalePercent}
             imageWidth={imageWidth}
             imageHeight={imageHeight}

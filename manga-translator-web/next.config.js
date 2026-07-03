@@ -105,7 +105,7 @@ const nextConfig = {
     'rc-tooltip',
     'rc-tree',
     'rc-table',
-    '@ant-design/icons-svg',
+    // '@ant-design/icons-svg' 已移除：该包仅含 SVG 数据对象，无需 SWC 转译
   ],
 
   experimental: {
@@ -157,6 +157,11 @@ const nextConfig = {
     })();
 
     return [
+      // Gateway 健康检查（无需认证，避免 NetworkStatusBar 轮询产生 401 噪音）
+      {
+        source: '/health',
+        destination: `${gatewayOrigin}/health`,
+      },
       // 全量 API 代理（axios baseURL=/api/v1 时走 Next.js 需此规则）
       {
         source: '/api/v1/:path*',

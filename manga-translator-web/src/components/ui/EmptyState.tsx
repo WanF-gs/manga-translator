@@ -31,25 +31,30 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center py-16 px-4',
+        'flex flex-col items-center justify-center py-20 px-4 animate-fade-in',
         className
       )}
     >
-      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-5">
-        {icon || <Inbox size={32} className="text-slate-300 dark:text-slate-600" />}
+      <div className="relative mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center shadow-inner-glow">
+          {icon || <Inbox size={36} className="text-slate-300 dark:text-slate-500" />}
+        </div>
+        <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center shadow-sm">
+          <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+        </div>
       </div>
-      <p className="text-lg font-semibold text-slate-600 dark:text-slate-400">
+      <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
         {title}
       </p>
       {description && (
-        <p className="text-sm mt-1.5 text-slate-400 dark:text-slate-500 max-w-xs text-center">
+        <p className="text-sm mt-2 text-slate-400 dark:text-slate-500 max-w-xs text-center leading-relaxed">
           {description}
         </p>
       )}
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="btn-primary mt-6 text-sm"
+          className="btn-primary mt-7 text-sm px-5"
         >
           {actionLabel}
         </button>

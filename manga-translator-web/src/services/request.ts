@@ -213,6 +213,7 @@ request.interceptors.request.use(
         useAuthStore.getState().logout();
         return Promise.reject(new Error('登录已过期，请重新登录'));
       }
+
       config.headers.Authorization = `Bearer ${token}`;
     } else if (!isPublicRequest(config.url)) {
       // 无 token 访问受保护接口 → 直接拒绝，不发出 401 请求

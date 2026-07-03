@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Upload, Tag, App, Popconfirm, Space, Card, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { Plus, UploadCloud, Trash2, Search, Type, Palette, Download, FileType, Eye, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, UploadCloud, Trash2, Search, Type, Palette, Download, FileType, Eye, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fontApi, type FontData, type FontListParams } from '@/services/font';
 import { ErrorDisplay } from '@/components/ui/ErrorDisplay';
@@ -25,6 +25,28 @@ const LICENSE_OPTIONS = [
   { value: 'free_commercial', label: '可商用' },
   { value: 'attribution', label: '需署名' },
   { value: 'personal_only', label: '仅个人使用' },
+];
+
+const STYLE_TAG_OPTIONS = [
+  { value: '热血', label: '热血' },
+  { value: '温馨', label: '温馨' },
+  { value: '搞笑', label: '搞笑' },
+  { value: '恐怖', label: '恐怖' },
+  { value: '通用', label: '通用' },
+  { value: '手写', label: '手写' },
+  { value: '少女', label: '少女' },
+  { value: '少年', label: '少年' },
+  { value: '现代', label: '现代' },
+  { value: '古典', label: '古典' },
+  { value: '粗体', label: '粗体' },
+  { value: 'sans-serif', label: '无衬线' },
+];
+
+const LANGUAGE_TAG_OPTIONS = [
+  { value: 'zh', label: '中文' },
+  { value: 'ja', label: '日文' },
+  { value: 'en', label: '英文' },
+  { value: 'ko', label: '韩文' },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -49,17 +71,32 @@ interface FontLivePreviewProps {
   fontName: string;
 }
 
+/** Detect font style (bold/italic) from name or file url so preview reflects actual weight. */
+function detectFontStyle(name: string, url: string) {
+  const lower = `${name} ${url}`.toLowerCase();
+  const isBold = /bold|粗体|heavy|black|extra-bold|extra|weight/.test(lower) && !/extra-light|light/.test(lower);
+  const isItalic = /italic|斜体|oblique/.test(lower);
+  return { isBold, isItalic };
+}
+
 function FontLivePreview({ fontUrl, fontName }: FontLivePreviewProps) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [glyphResult, setGlyphResult] = useState<{ coverage: number; missing: string[] } | null>(null);
   const loadedRef = useRef(false);
+  const style = detectFontStyle(fontName, fontUrl);
 
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
 
-    const fontFace = new FontFace(`preview-${fontName}`, `url(${fontUrl})`);
+    // 声明正确的 weight/style，让浏览器正确匹配，避免英文 fallback 到默认字体
+    const descriptors: FontFaceDescriptors = {
+      weight: style.isBold ? '700' : '400',
+      style: style.isItalic ? 'italic' : 'normal',
+    };
+    const encodedUrl = fontUrl.replace(/[^/]+$/, (name) => encodeURIComponent(name));
+    const fontFace = new FontFace(`preview-${fontName}`, `url(${encodedUrl})`, descriptors);
     fontFace.load().then((f) => {
       document.fonts.add(f);
       setFontLoaded(true);
@@ -83,7 +120,12 @@ function FontLivePreview({ fontUrl, fontName }: FontLivePreviewProps) {
         ) : (
           <p
             className="text-xl leading-relaxed whitespace-pre-wrap break-all"
-            style={{ fontFamily: `"preview-${fontName}"`, lineHeight: 1.6 }}
+            style={{
+              fontFamily: `"preview-${fontName}"`,
+              lineHeight: 1.6,
+              fontWeight: style.isBold ? 'bold' : 'normal',
+              fontStyle: style.isItalic ? 'italic' : 'normal',
+            }}
           >
             {PREVIEW_SAMPLE_ZH}
           </p>
@@ -127,7 +169,7 @@ async function checkGlyphCoverage(
   const ctx = canvas.getContext('2d');
   if (!ctx) return { coverage: 1, missing: [] };
 
-  // Measure reference width for a known-present char
+  // Measure reference width for a known-present CJK char
   canvas.width = 100;
   canvas.height = 50;
   ctx.font = `48px "${font.family}"`;
@@ -135,11 +177,14 @@ async function checkGlyphCoverage(
 
   const missing: string[] = [];
   let covered = 0;
+  let total = 0;
   for (const ch of text) {
-    if (ch === ' ') { covered++; continue; }
+    // Skip whitespace entirely — it has no meaningful glyph to measure
+    if (ch === ' ' || ch === '\t' || ch === '\n') continue;
+    total++;
     const w = ctx.measureText(ch).width;
-    // Heuristic: if width is 0 or significantly different from expected CJK/ASCII width, likely missing
     const isCJK = /[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/.test(ch);
+    // Heuristic: missing glyph (tofu) typically renders as 0-width or much narrower than expected
     const expectedMin = isCJK ? refWidth * 0.3 : 2;
     if (w < expectedMin) {
       missing.push(ch);
@@ -147,8 +192,8 @@ async function checkGlyphCoverage(
       covered++;
     }
   }
-  const total = Math.max(1, text.replace(/\s/g, '').length);
-  return { coverage: (covered / total) * 100, missing };
+  const denom = Math.max(1, total);
+  return { coverage: Math.min(100, (covered / denom) * 100), missing };
 }
 
 export default function FontsPage() {
@@ -166,7 +211,8 @@ export default function FontsPage() {
       const res = await fontApi.getList(filters);
       return res.data?.data || { items: [], total: 0 };
     },
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     retry: 1,
   });
 
@@ -180,15 +226,23 @@ export default function FontsPage() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (values: { name: string; category: string; license: string; file: any }) => {
+    mutationFn: async (values: { name: string; category: string; license: string; style_tags?: string[]; language_tags?: string[]; file: any }) => {
       const fd = new FormData();
-      fd.append('name', values.name);
-      fd.append('category', values.category);
-      fd.append('license', values.license);
       if (values.file?.fileList?.[0]?.originFileObj) {
         fd.append('file', values.file.fileList[0].originFileObj);
       }
-      return fontApi.upload(fd);
+      const queryParams: Record<string, string> = {
+        name: values.name,
+        category: values.category,
+        license_type: values.license,
+      };
+      if (values.style_tags?.length) {
+        queryParams.style_tags = values.style_tags.join(',');
+      }
+      if (values.language_tags?.length) {
+        queryParams.language_tags = values.language_tags.join(',');
+      }
+      return fontApi.upload(fd, queryParams);
     },
     onSuccess: () => {
       message.success('字体上传成功');
@@ -342,13 +396,22 @@ export default function FontsPage() {
               </p>
             </div>
           </div>
-          <Button
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setUploadOpen(true)}
-          >
-            上传字体
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              icon={<RefreshCw size={16} />}
+              onClick={() => refetch()}
+              loading={isLoading}
+            >
+              刷新
+            </Button>
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={() => setUploadOpen(true)}
+            >
+              上传字体
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -478,6 +541,24 @@ export default function FontsPage() {
           </Form.Item>
           <Form.Item name="license" label="许可证" rules={[{ required: true, message: '请选择许可证' }]}>
             <Select options={LICENSE_OPTIONS} placeholder="请选择许可证" />
+          </Form.Item>
+          <Form.Item name="style_tags" label="风格标签">
+            <Select
+              mode="multiple"
+              placeholder="选择风格标签（可选）"
+              options={STYLE_TAG_OPTIONS}
+              maxTagCount={5}
+              allowClear
+            />
+          </Form.Item>
+          <Form.Item name="language_tags" label="支持语言">
+            <Select
+              mode="multiple"
+              placeholder="选择支持语言（可选）"
+              options={LANGUAGE_TAG_OPTIONS}
+              maxTagCount={4}
+              allowClear
+            />
           </Form.Item>
           <Form.Item
             name="file"

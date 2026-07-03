@@ -33,8 +33,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, hideTabBar
 
       {/* 底部Tab导航 */}
       {!hideTabBar && (
-        <nav className="flex-shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-800/60 safe-area-bottom">
-          <div className="flex items-center justify-around h-14">
+        <nav className="flex-shrink-0 bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-t border-slate-200/40 dark:border-slate-800/40 safe-area-bottom shadow-lg shadow-slate-900/5">
+          <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
             {TAB_ITEMS.map((item) => {
               const isActive = pathname === item.href || 
                 (item.key !== '/m/' && pathname.startsWith(item.key));
@@ -50,12 +50,12 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, hideTabBar
                   )}
                 >
                   <item.icon size={22} className={clsx(
-                    'transition-transform duration-200',
-                    isActive && 'scale-110'
+                    'transition-all duration-200',
+                    isActive && 'scale-110 drop-shadow-sm'
                   )} />
                   <span className="text-[10px] font-semibold">{item.label}</span>
                   {isActive && (
-                    <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 dark:bg-primary-400 rounded-full" />
+                    <span className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 dark:from-primary-400 dark:to-primary-500 shadow-sm shadow-primary-500/30" />
                   )}
                 </Link>
               );

@@ -7,14 +7,13 @@ import request from './request';
 import type { ApiResponse } from '@/types';
 
 export interface ApiKeyData {
-  key_id: string;
-  user_id: string;
+  api_key_id: string;
+  user_id?: string;
   name: string;
   key_prefix: string; // msk_xxxx...
-  key_hash: string;   // never returned except on creation
-  raw_key?: string;   // only returned once on creation
+  api_key?: string;   // only returned once on creation
   is_active: boolean;
-  rate_limit_per_minute: number;
+  rate_limit: number;
   total_calls: number;
   last_used_at?: string;
   created_at: string;
@@ -22,14 +21,13 @@ export interface ApiKeyData {
 
 export interface CreateApiKeyParams {
   name: string;
-  rate_limit_per_minute?: number;
+  rate_limit?: number;
 }
 
 export interface ApiKeyUsageStats {
-  key_id: string;
+  api_key_id: string;
   total_calls: number;
-  calls_today: number;
-  calls_this_hour: number;
+  monthly_calls: number;
   last_used_at?: string;
 }
 

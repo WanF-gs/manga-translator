@@ -14,6 +14,8 @@ import {
   Eye,
   HelpCircle,
   Keyboard,
+  Layers,
+  ChevronDown,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useEditorStore } from '@/stores/editorStore';
@@ -28,8 +30,12 @@ interface ToolbarProps {
   totalPages?: number;
   /** 显示原文切换回调 */
   onToggleShowOriginal: () => void;
-  /** 一键翻译回调 */
+  /** 直接设置显示模式 */
+  displayMode?: 'original' | 'translated' | 'bilingual';
+  /** 一键翻译回调（仅翻译当前页） */
   onAutoTranslate?: () => void;
+  /** 批量翻译全部页回调 */
+  onBatchTranslate?: () => void;
   /** 保存回调 */
   onSave?: () => void;
   /** 导出回调 */
@@ -43,18 +49,31 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   totalPages,
   onToggleShowOriginal,
   onAutoTranslate,
+  onBatchTranslate,
   onSave,
   onExport,
+  displayMode = 'translated',
 }) => {
   const {
     mode,
     setMode,
-    showOriginal,
     historyIndex,
     history,
     undo,
     redo,
   } = useEditorStore();
+
+  // 三态模式标签与颜色
+  const modeLabels: Record<string, string> = {
+    original: '原文',
+    translated: '译文',
+    bilingual: '双语',
+  };
+  const modeColors: Record<string, string> = {
+    original: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+    translated: 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400',
+    bilingual: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+  };
   
   const canUndo = historyIndex >= 0;
   const canRedo = historyIndex < history.length;
@@ -71,13 +90,36 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { keys: 'Ctrl+S', desc: '保存' },
     { keys: 'Ctrl+Z', desc: '撤销' },
     { keys: 'Ctrl+Y', desc: '重做' },
-    { keys: 'Ctrl+D', desc: '取消选中' },
+    { keys: 'Ctrl+B', desc: '切换原文/译文/双语' },
     { keys: 'Delete / Backspace', desc: '删除选中区域' },
     { keys: '↑↓←→', desc: '微调选中区域位置' },
     { keys: 'Ctrl+滚轮', desc: '缩放画布' },
     { keys: 'Space+拖拽', desc: '平移画布' },
     { keys: '双击画布', desc: '重置视图' },
   ];
+
+  // 多页时翻译按钮变为下拉：仅翻译当前页 / 翻译全部页
+  const hasMultiplePages = (totalPages ?? 0) > 1;
+  const translateMenuItems: MenuProps['items'] = [
+    {
+      key: 'current',
+      label: '仅翻译当前页',
+      icon: <Wand2 size={14} />,
+    },
+    {
+      key: 'all',
+      label: `翻译全部 ${totalPages ?? 0} 页`,
+      icon: <Layers size={14} />,
+    },
+  ];
+
+  const handleTranslateMenuClick: MenuProps['onClick'] = ({ key }) => {
+    if (key === 'current') {
+      onAutoTranslate?.();
+    } else if (key === 'all') {
+      onBatchTranslate?.();
+    }
+  };
 
   return (
     <>
@@ -116,17 +158,37 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           className="bg-slate-100 dark:bg-slate-800"
         />
 
-        {/* 简易模式：一键翻译 */}
+        {/* 简易模式：翻译按钮（多页时下拉选择仅当前/全部） */}
         {mode === 'simple' && (
-          <Button
-            type="primary"
-            size="small"
-            icon={<Wand2 size={14} />}
-            onClick={onAutoTranslate}
-            className="text-xs"
-          >
-            一键翻译
-          </Button>
+          hasMultiplePages ? (
+            <Dropdown.Button
+              type="primary"
+              size="small"
+              icon={<Wand2 size={14} />}
+              menu={{
+                items: translateMenuItems,
+                onClick: handleTranslateMenuClick,
+              }}
+              onClick={() => onAutoTranslate?.()}
+              className="text-xs"
+              trigger={['click']}
+            >
+              <span className="flex items-center gap-1">
+                仅翻译当前页
+                <ChevronDown size={10} />
+              </span>
+            </Dropdown.Button>
+          ) : (
+            <Button
+              type="primary"
+              size="small"
+              icon={<Wand2 size={14} />}
+              onClick={onAutoTranslate}
+              className="text-xs"
+            >
+              一键翻译
+            </Button>
+          )
         )}
 
         {/* 专业模式：撤销/重做 */}
@@ -172,18 +234,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
 
-        {/* 原文/译文切换 */}
+        {/* 原文/译文/双语 三态切换 */}
         <button
           onClick={onToggleShowOriginal}
           className={clsx(
-            'p-1.5 rounded-lg text-xs transition-colors',
-            showOriginal
-              ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-              : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+            'p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1',
+            modeColors[displayMode] || 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
           )}
-          title={showOriginal ? '显示译文' : '显示原文'}
+          title={`当前：${modeLabels[displayMode] || displayMode} · 点击切换`}
         >
           <Eye size={16} />
+          <span className="hidden sm:inline">{modeLabels[displayMode]}</span>
         </button>
 
         <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />

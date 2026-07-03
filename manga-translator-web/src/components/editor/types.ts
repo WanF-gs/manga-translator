@@ -38,6 +38,10 @@ export interface EditorRegion extends TextRegion {
    * 当 boundary_mode 为 polygon/bezier 时存在，用于节点级编辑。
    */
   points?: [number, number][];
+  /** v3.0: 缺字状态 — 渲染服务或前端检测器回写 */
+  glyph_status?: 'ok' | 'warning' | 'missing';
+  /** v3.0: 缺字计数 */
+  glyph_missing_count?: number;
 }
 
 /** 处理步骤 */
@@ -86,14 +90,23 @@ export const PAGE_STATUS_CONFIGS: Record<string, PageStatusConfig> = {
   completed: { color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/30', label: '已完成' },
 };
 
-/** 字体选项 */
-export const FONT_OPTIONS = [
-  { value: '内置漫画对话体', label: '漫画对话体 (默认)' },
-  { value: '内置漫画旁白体', label: '漫画旁白体' },
-  { value: '内置拟声词样式', label: '拟声词样式' },
-  { value: 'Noto Sans SC', label: 'Noto Sans SC' },
-  { value: 'LXGW WenKai', label: '霞鹜文楷' },
-];
+/** 动态字体选项（来源：/api/v1/fonts） */
+export interface FontSelectItem {
+  font_id: string;
+  name: string;
+  category: string;
+  style_tags: string[];
+  is_system: boolean;
+  is_active: boolean;
+}
+
+/** 字体分类分组标签 */
+export const FONT_CATEGORY_GROUPS: Record<string, string> = {
+  dialogue: '对话气泡',
+  narration: '旁白文字',
+  onomatopoeia: '拟声词',
+  title: '标题文字',
+};
 
 /** 字号范围 */
 export const FONT_SIZE_MIN = 8;

@@ -7,7 +7,7 @@
  * v2 像素坐标系: EditorRegion.x/y/w/h 已是原始像素坐标，无需百分比转换
  */
 import { useCallback } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import type { TextRegion, PageData } from '@/types';
 import type { EditorRegion, StyleConfig } from '@/components/editor/types';
 import { DEFAULT_STYLE } from '@/components/editor/types';
@@ -66,6 +66,9 @@ export function useRegionOperations({
   selectRegion,
   updateRegion,
 }: UseRegionOperationsOptions) {
+
+  // FIX: use App.useApp() instead of static message to avoid antd warning
+  const { message } = App.useApp();
 
   /** 删除选区 */
   const handleDeleteRegion = useCallback(

@@ -20,6 +20,8 @@ interface CanvasProps {
   selectedRegionId: string | null;
   /** 是否显示原文 */
   showOriginal: boolean;
+  /** §2.7.1: 显示模式 original | translated | bilingual */
+  displayMode?: 'original' | 'translated' | 'bilingual';
   /** §2.2.8: 是否显示检测选区线 */
   showRegions?: boolean;
   /** 缩放百分比 (外部传入，双向绑定) */
@@ -43,6 +45,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   selectedRegionId,
   showOriginal,
   showRegions = true,
+  displayMode = 'translated',
   scale,
   onScaleChange,
   onSelectRegion,
@@ -124,9 +127,9 @@ export const Canvas: React.FC<CanvasProps> = ({
     [onScaleChange]
   );
 
-  // Ctrl+滚轮缩放
+  // Ctrl+滚轮缩放 —— 必须用原生 non-passive 监听器，否则浏览器忽略 preventDefault
   const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+    (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -10 : 10;
@@ -135,6 +138,16 @@ export const Canvas: React.FC<CanvasProps> = ({
     },
     [scale, requestScaleChange]
   );
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    // 显式声明 passive: false 才能在 wheel 处理函数中阻止默认滚动/缩放
+    node.addEventListener('wheel', handleWheel as any, { passive: false });
+    return () => {
+      node.removeEventListener('wheel', handleWheel as any);
+    };
+  }, [handleWheel]);
 
   // 拖拽平移：手型模式左键 / 空格+左键 / 中键
   const handleMouseDown = useCallback(
@@ -275,7 +288,6 @@ export const Canvas: React.FC<CanvasProps> = ({
           isPanning && 'cursor-grabbing',
           !isPanning && (panModeActive || spaceDown) && 'cursor-grab'
         )}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -382,12 +394,13 @@ export const Canvas: React.FC<CanvasProps> = ({
             </div>
           )}
 
-          {/* §2.2.8: 选区覆盖层 — 可通过快捷键H隐藏 */}
-          {showRegions !== false && (
+          {/* §2.2.8: 选区覆盖层 — 可通过快捷键H隐藏，但双语模式下始终显示 */}
+          {(showRegions !== false || displayMode === 'bilingual') && (
             <RegionOverlay
               regions={regions}
               selectedRegionId={selectedRegionId}
               showOriginal={showOriginal}
+              displayMode={displayMode}
               scalePercent={scale}
               imageWidth={baseW}
               imageHeight={baseH}

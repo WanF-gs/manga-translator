@@ -17,7 +17,7 @@ const SOURCE_LANG_OPTIONS: { value: SourceLang; label: string }[] = [
 ];
 
 const TARGET_LANG_OPTIONS = [
-  { value: 'zh', label: '中文（简体）' },
+  { value: 'zh-CN', label: '中文（简体）' },
   { value: 'en', label: '英语' },
   { value: 'ja', label: '日语' },
   { value: 'ko', label: '韩语' },
@@ -93,6 +93,7 @@ export default function UploadPage() {
       const projectRes = await projectApi.create({
         name: projectName || '未命名作品',
         source_lang: sourceLang,
+        default_target_lang: targetLang,
       });
       const projectId = projectRes.data?.data?.project_id;
       if (!projectId) throw new Error('创建项目失败');

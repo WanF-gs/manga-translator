@@ -24,6 +24,7 @@ const BatchProgressModal = lazy(() => import('@/components/editor/BatchProgressM
 import { useEditorStore } from '@/stores/editorStore';
 import { useEditorPageLogic } from '@/hooks/useEditorPageLogic';
 import { useKeyboardShortcuts, type ShortcutBinding } from '@/hooks/useKeyboardShortcuts';
+import { FontLoaderProvider } from '@/hooks/useFontLoader';
 import { resolvePageImageUrl, resolveProcessedImageUrl } from '@/utils/pageImage';
 import type { EditorRegion } from '@/components/editor/types';
 import type { TextRegion } from '@/types';
@@ -48,33 +49,31 @@ function EditorPage() {
   // Keyboard shortcuts
   const shortcuts = useMemo<ShortcutBinding[]>(() => [
     { key: 'ctrl+s', handler: logic.handleSave, description: '保存' },
+    { key: 'ctrl+b', handler: logic.toggleShowOriginal, description: '切换原文/译文/双语' },
     { key: 'ctrl+z', handler: () => useEditorStore.getState().undo(), description: '撤销' },
     { key: 'ctrl+y', handler: () => useEditorStore.getState().redo(), description: '重做' },
     { key: 'ctrl+d', handler: () => logic.selectRegion(null), description: '取消选择' },
     { key: 'h', handler: () => useEditorStore.getState().toggleShowRegions(), description: '隐藏/显示选区线', ctrl: false, shift: false, alt: false },
     { key: 'delete', handler: () => logic.selectedRegionId && logic.regionOps.handleDeleteRegion(logic.selectedRegionId), description: '删除选区', preventDefault: true },
-  ], [logic.handleSave, logic.selectedRegionId, logic.regionOps]);
+  ], [logic.handleSave, logic.toggleShowOriginal, logic.selectedRegionId, logic.regionOps]);
 
   useKeyboardShortcuts({ shortcuts });
 
   const canvasImageUrl = useMemo(() => {
     const pageId = logic.currentPageId;
     const original = logic.currentPageData?.original_url;
-    const processed = resolveProcessedImageUrl((logic.currentPageData as any)?.processed_url as string | undefined);
-    if (logic.showOriginal) {
-      return resolvePageImageUrl(pageId, original) || PLACEHOLDER_IMAGE(logic.currentPageNumber);
-    }
-    return (
-      processed ||
-      resolvePageImageUrl(pageId, original) ||
-      PLACEHOLDER_IMAGE(logic.currentPageNumber)
-    );
-  }, [logic.showOriginal, logic.currentPageId, logic.currentPageData, logic.currentPageNumber]);
+    return resolvePageImageUrl(pageId, original) || PLACEHOLDER_IMAGE(logic.currentPageNumber);
+  }, [logic.currentPageId, logic.currentPageData, logic.currentPageNumber]);
 
-  const canvasFallbackUrl = useMemo(
-    () => (logic.showOriginal ? undefined : resolvePageImageUrl(logic.currentPageId, logic.currentPageData?.original_url)),
-    [logic.showOriginal, logic.currentPageId, logic.currentPageData?.original_url]
-  );
+  const processedImageUrl = useMemo(() => {
+    const pageId = logic.currentPageId;
+    const original = logic.currentPageData?.original_url;
+    const processed = resolveProcessedImageUrl((logic.currentPageData as any)?.processed_url as string | undefined);
+    if (processed) return processed;
+    return resolvePageImageUrl(pageId, original) || PLACEHOLDER_IMAGE(logic.currentPageNumber);
+  }, [logic.currentPageId, logic.currentPageData, logic.currentPageNumber]);
+
+  const activeImageUrl = logic.displayMode === 'original' ? canvasImageUrl : processedImageUrl;
 
   // ===== Loading / Error =====
   if (logic.isLoading) {
@@ -96,13 +95,16 @@ function EditorPage() {
 
   // ===== Render =====
   return (
+    <FontLoaderProvider>
     <div className="h-screen flex flex-col bg-slate-100 dark:bg-slate-950">
       <Toolbar
         projectName={logic.project?.name || '未命名项目'}
         currentPageNumber={logic.currentPageNumber}
         totalPages={logic.totalPages}
+        displayMode={logic.displayMode}
         onToggleShowOriginal={logic.toggleShowOriginal}
         onAutoTranslate={logic.handleAutoTranslate}
+        onBatchTranslate={logic.handleBatchTranslate}
         onSave={logic.handleSave}
         onExport={logic.handleExport}
       />
@@ -123,21 +125,75 @@ function EditorPage() {
 
         {/* Center: Canvas + StatusBar */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          <Canvas
-            imageUrl={canvasImageUrl}
-            fallbackUrl={canvasFallbackUrl}
-            pageId={logic.currentPageId}
-            imageWidth={logic.currentPageData?.width || 800}
-            imageHeight={logic.currentPageData?.height || 1100}
-            regions={logic.regions as EditorRegion[]}
-            selectedRegionId={logic.selectedRegionId}
-            showOriginal={logic.showOriginal}
-            showRegions={useEditorStore.getState().showRegions}
-            scale={logic.canvasScale}
-            onScaleChange={logic.setCanvasScale}
-            onSelectRegion={logic.handleCanvasSelectRegion}
-            onUpdateRegion={logic.handleCanvasUpdateRegion}
-          />
+          {logic.displayMode === 'bilingual' ? (
+            /* §2.5.4 / §2.7.1: 双语左右分屏 */
+            <div className="flex-1 flex items-stretch gap-3 p-3 min-h-0">
+              {/* 左侧：原文 */}
+              <div className="flex-1 flex flex-col min-w-0">
+                <span className="text-xs text-slate-400 mb-1 text-center flex-shrink-0">
+                  原文（{logic.project?.source_lang || '日文'}）
+                </span>
+                <div className="flex-1 min-h-0">
+                  <Canvas
+                    imageUrl={canvasImageUrl}
+                    pageId={logic.currentPageId}
+                    imageWidth={logic.currentPageData?.width || 800}
+                    imageHeight={logic.currentPageData?.height || 1100}
+                    regions={logic.regions as EditorRegion[]}
+                    selectedRegionId={logic.selectedRegionId}
+                    showOriginal={true}
+                    displayMode="original"
+                    showRegions={logic.showRegions}
+                    scale={logic.canvasScale}
+                    onScaleChange={logic.setCanvasScale}
+                    onSelectRegion={logic.handleCanvasSelectRegion}
+                    onUpdateRegion={logic.handleCanvasUpdateRegion}
+                  />
+                </div>
+              </div>
+              {/* 分隔线 */}
+              <div className="w-px bg-slate-300 dark:bg-slate-700 flex-shrink-0" />
+              {/* 右侧：译文 */}
+              <div className="flex-1 flex flex-col min-w-0">
+                <span className="text-xs text-slate-400 mb-1 text-center flex-shrink-0">
+                  译文（简体中文）
+                </span>
+                <div className="flex-1 min-h-0">
+                  <Canvas
+                    imageUrl={processedImageUrl}
+                    pageId={logic.currentPageId}
+                    imageWidth={logic.currentPageData?.width || 800}
+                    imageHeight={logic.currentPageData?.height || 1100}
+                    regions={logic.regions as EditorRegion[]}
+                    selectedRegionId={logic.selectedRegionId}
+                    showOriginal={false}
+                    displayMode="translated"
+                    showRegions={logic.showRegions}
+                    scale={logic.canvasScale}
+                    onScaleChange={logic.setCanvasScale}
+                    onSelectRegion={logic.handleCanvasSelectRegion}
+                    onUpdateRegion={logic.handleCanvasUpdateRegion}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Canvas
+              imageUrl={activeImageUrl}
+              pageId={logic.currentPageId}
+              imageWidth={logic.currentPageData?.width || 800}
+              imageHeight={logic.currentPageData?.height || 1100}
+              regions={logic.regions as EditorRegion[]}
+              selectedRegionId={logic.selectedRegionId}
+              showOriginal={logic.showOriginal}
+              displayMode={logic.displayMode}
+              showRegions={logic.showRegions}
+              scale={logic.canvasScale}
+              onScaleChange={logic.setCanvasScale}
+              onSelectRegion={logic.handleCanvasSelectRegion}
+              onUpdateRegion={logic.handleCanvasUpdateRegion}
+            />
+          )}
           <StatusBar
             currentPageNumber={logic.currentPageNumber || 1}
             totalPages={logic.totalPages || 1}
@@ -170,7 +226,7 @@ function EditorPage() {
           totalPages={logic.totalPages}
           sourceLang={(logic.project as any)?.source_lang}
           currentPageData={logic.currentPageData}
-          onUpdateRegion={(rid, data) => logic.updateRegion(rid, data as Partial<TextRegion>)}
+          onUpdateRegion={logic.handleUpdateRegion}
           onDeleteRegion={logic.regionOps.handleDeleteRegion}
           onToggleLock={logic.regionOps.handleToggleLock}
           onApplyAll={logic.regionOps.handleApplyAll}
@@ -204,6 +260,7 @@ function EditorPage() {
         </React.Suspense>
       )}
     </div>
+    </FontLoaderProvider>
   );
 }
 

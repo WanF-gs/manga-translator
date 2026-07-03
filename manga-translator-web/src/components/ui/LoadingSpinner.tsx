@@ -22,17 +22,19 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center gap-4',
+        'flex flex-col items-center justify-center gap-5',
         fullScreen
-          ? 'h-screen w-screen fixed inset-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl'
-          : 'py-16'
+          ? 'h-screen w-screen fixed inset-0 z-50 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl'
+          : 'py-20'
       )}
     >
-      <Spin size={size}>
-        <div className={size === 'small' ? 'p-4' : size === 'default' ? 'p-6' : 'p-8'} />
-      </Spin>
+      <div className="relative">
+        <Spin size={size}>
+          <div className={size === 'small' ? 'p-4' : size === 'default' ? 'p-6' : 'p-8'} />
+        </Spin>
+      </div>
       {tip && (
-        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse-soft font-medium">
+        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse-soft font-medium tracking-wide">
           {tip}
         </p>
       )}
