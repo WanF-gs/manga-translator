@@ -69,6 +69,14 @@ manga-translator-web/e2e/*diagnosis*.png
 manga-translator-backend/gateway/gateway_linux
 manga-translator-backend/gateway/gateway.exe
 
+# ===== Runtime Data =====
+data/minio-data/
+data/uploads/
+
+# ===== Temporary Scripts =====
+tmp_*.sh
+tmp_*.ps1
+
 # ===== Misc =====
 *.tmp
 *.temp
