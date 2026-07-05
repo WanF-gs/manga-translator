@@ -92,7 +92,7 @@ def _apply_ocr_post_corrections(text: str) -> str:
 
 # 项目服务地址（用于解析相对 URL）
 STORAGE_BASE_URL = os.getenv("STORAGE_BASE_URL", "http://localhost:8002")
-LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", "/tmp/manga-storage/uploads")
+LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", os.path.join(settings.UPLOAD_DIR, "uploads"))
 
 
 def _resolve_image_url(image_url: str) -> str:
@@ -187,25 +187,41 @@ def _check_paddleocr_available() -> bool:
     return _paddle_ocr_available
 
 
-def _get_paddle_ocr():
-    global _paddle_ocr_instance
-    enabled = os.getenv("PADDLEOCR_ENABLED", "true").lower() in ("true", "1", "yes")
-    if _paddle_ocr_instance is None and enabled and _check_paddleocr_available():
-        try:
-            from paddleocr import PaddleOCR
-            _paddle_ocr_instance = PaddleOCR(
-                lang='japan',
-                use_textline_orientation=True,
-                det_db_thresh=0.2,
-                det_db_box_thresh=0.1,
-                rec_batch_num=6,
-                show_log=False,
-            )
-            logger.info("PaddleOCR PP-OCRv4 engine initialized in image_service")
-        except Exception as e:
-            logger.warning(f"PaddleOCR init failed in image_service: {e}")
-            _paddle_ocr_instance = False
-    return _paddle_ocr_instance if _paddle_ocr_instance is not False else None
+# source_lang → PaddleOCR lang 参数映射
+_PADDLEOCR_LANG_MAP_LOCAL = {
+    "ja": "japan", "jpn": "japan",
+    "zh": "ch", "zh-CN": "ch", "zh-TW": "chinese_tra",
+    "chi_sim": "ch", "chi_tra": "chinese_tra",
+    "en": "en", "eng": "en",
+    "ko": "korean", "kor": "korean",
+}
+
+# PaddleOCR 实例缓存（按语言缓存）
+_paddle_ocr_instances_local = {}
+
+def _get_paddle_ocr(lang: str = None):
+    """获取 PaddleOCR 实例（按语言缓存）。lang 为空时默认 japan。"""
+    global _paddle_ocr_instances_local
+    paddle_lang = _PADDLEOCR_LANG_MAP_LOCAL.get(lang, "japan") if lang else "japan"
+    if paddle_lang not in _paddle_ocr_instances_local:
+        enabled = os.getenv("PADDLEOCR_ENABLED", "true").lower() in ("true", "1", "yes")
+        if enabled and _check_paddleocr_available():
+            try:
+                from paddleocr import PaddleOCR
+                _paddle_ocr_instances_local[paddle_lang] = PaddleOCR(
+                    lang=paddle_lang,
+                    use_angle_cls=True,
+                    det_db_thresh=0.2,
+                    det_db_box_thresh=0.1,
+                    rec_batch_num=6,
+                    show_log=False,
+                )
+                logger.info(f"PaddleOCR PP-OCRv4 engine ({paddle_lang}) initialized in image_service")
+            except Exception as e:
+                logger.warning(f"PaddleOCR init failed in image_service ({paddle_lang}): {e}")
+                _paddle_ocr_instances_local[paddle_lang] = False
+    inst = _paddle_ocr_instances_local.get(paddle_lang)
+    return inst if inst is not False else None
 
 
 _manga_ocr_instance = None
@@ -398,7 +414,7 @@ async def _tesseract_ocr(image_data: bytes, regions: list, lang: str) -> List[di
                 logger.warning(f"manga-ocr per-region failed: {e}")
 
         # ── Strategy 0: PaddleOCR v4 全图 ──
-        paddle = _get_paddle_ocr()
+        paddle = _get_paddle_ocr(lang)
         if paddle is not None:
             try:
                 pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))

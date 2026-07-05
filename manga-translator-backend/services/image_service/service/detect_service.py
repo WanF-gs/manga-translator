@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 # 项目服务地址（用于解析相对 URL）
 STORAGE_BASE_URL = os.getenv("STORAGE_BASE_URL", "http://localhost:8002")
-# 本地文件挂载路径（project_uploads 卷挂载到 /tmp/manga-storage）
-LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", "/tmp/manga-storage/uploads")
+# 本地文件挂载路径（与 project-service 共享的持久化目录）
+LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", os.path.join(settings.UPLOAD_DIR, "uploads"))
 
 
 def _resolve_image_url(image_url: str) -> str:
@@ -92,18 +92,15 @@ def _normalize_bbox(bbox) -> dict:
     return {"x": 0, "y": 0, "width": 100, "height": 100}
 
 
-async def _ai_detect(image_url: str, language: str = "ja") -> Optional[List[dict]]:
-    """通过 AI 微服务检测文字区域"""
-    try:
-        from common.clients.ai_service import ai_client
-        logger.info(f"AI detect: calling AI Gateway with url={image_url}, lang={language}")
-        result = await ai_client.detect_text_regions(image_url, language=language)
-        logger.info(f"AI detect: response keys={list(result.keys()) if result else None}, status={result.get('status', 'N/A') if result else 'None'}")
-        if result and "regions" in result:
-            return result["regions"]
-    except Exception as e:
-        logger.warning(f"AI detect failed: {e}, falling back to CV-based detection")
-    return None
+async def _ai_detect(image_url: str, language: str = "ja") -> List[dict]:
+    """通过 AI 微服务检测文字区域 — 唯一检测方式，无回退"""
+    from common.clients.ai_service import ai_client
+    logger.info(f"AI detect: calling AI Gateway with url={image_url}, lang={language}")
+    result = await ai_client.detect_text_regions(image_url, language=language)
+    logger.info(f"AI detect: response keys={list(result.keys()) if result else None}")
+    if result and "regions" in result:
+        return result["regions"]
+    raise RuntimeError(f"AI Gateway returned no regions for {image_url}")
 
 
 async def _cv_detect(image_data: bytes) -> list:
@@ -123,11 +120,12 @@ async def _cv_detect(image_data: bytes) -> list:
         diagonal = math.sqrt(w**2 + h**2)
 
         # MSER 文字区域检测 — 跳过过小的图片避免崩溃
+        # v3: Increased min area 0.001→0.004 to reject noise pixels
         regions_mser = None
         if w >= 10 and h >= 10:
             try:
                 mser = cv2.MSER_create()
-                mser.setMinArea(int(w * h * 0.001))
+                mser.setMinArea(int(w * h * 0.004))
                 mser.setMaxArea(int(w * h * 0.08))
                 regions_mser, _ = mser.detectRegions(gray)
             except cv2.error:
@@ -143,12 +141,12 @@ async def _cv_detect(image_data: bytes) -> list:
         raw_boxes = []
         seen_boxes = set()
         
-        # Collect contour-based boxes
+        # Collect contour-based boxes (v3: tighter thresholds to reduce noise)
         for cnt in contours:
             x, y, rw, rh = cv2.boundingRect(cnt)
-            if rw < 12 or rh < 8 or rw > w * 0.9 or rh > h * 0.9:
+            if rw < 20 or rh < 16 or rw > w * 0.9 or rh > h * 0.9:
                 continue
-            if rw * rh < 150:
+            if rw * rh < 500:
                 continue
             key = (x // 8, y // 8, rw // 8, rh // 8)
             if key in seen_boxes:
@@ -156,14 +154,14 @@ async def _cv_detect(image_data: bytes) -> list:
             seen_boxes.add(key)
             raw_boxes.append((x, y, rw, rh, 0.75))
 
-        # Collect MSER-based boxes
+        # Collect MSER-based boxes (v3: tighter thresholds)
         if regions_mser is not None:
             for mser_region in regions_mser:
                 rx, ry, rw, rh = cv2.boundingRect(mser_region)
                 key = (rx // 8, ry // 8, rw // 8, rh // 8)
                 if key in seen_boxes:
                     continue
-                if rw < 12 or rh < 8 or rw > w * 0.9 or rh > h * 0.9:
+                if rw < 20 or rh < 16 or rw > w * 0.9 or rh > h * 0.9:
                     continue
                 seen_boxes.add(key)
                 raw_boxes.append((rx, ry, rw, rh, 0.70))
@@ -231,9 +229,9 @@ async def _cv_detect(image_data: bytes) -> list:
                 bh = min(h - by_, bh + 2 * pad_y)
                 conf = max(b[4] for b in cluster)
 
-            if bw < 20 or bh < 12:
+            if bw < 25 or bh < 18:
                 continue
-            if bw * bh < 200:
+            if bw * bh < 600:
                 continue
 
             # PRD 2.2.8: Absolute size caps — prevent huge boxes covering non-text areas
@@ -253,8 +251,9 @@ async def _cv_detect(image_data: bytes) -> list:
             if roi is not None and roi.size > 0:
                 try:
                     # Feature 1: Dark pixel ratio (text is darker than background)
+                    # v3: tightened from 0.06→0.10 — noise regions tend to have very few dark pixels
                     dark_ratio = np.sum(roi < 110) / max(roi.size, 1)
-                    if dark_ratio < 0.06 or dark_ratio > 0.55:
+                    if dark_ratio < 0.10 or dark_ratio > 0.55:
                         continue  # Too few or too many dark pixels = no text / solid fill
                     
                     # Feature 2: Edge density check
@@ -294,8 +293,8 @@ async def _cv_detect(image_data: bytes) -> list:
 
         # Sort top-to-bottom, left-to-right
         regions.sort(key=lambda r: (r["bbox"][1], r["bbox"][0]))
-        logger.info(f"CV detect: merged to {len(regions)} regions (abs_max={abs_max_w}x{abs_max_h}, area_cap={max_area_px})")
-        return regions[:25]  # PRD 2.2.1: ~5-25 regions per manga page
+        logger.info(f"CV detect (v3): merged to {len(regions)} regions (abs_max={abs_max_w}x{abs_max_h}, area_cap={max_area_px})")
+        return regions[:18]  # v3: reduced from 25 — fewer false positives for CV fallback
     except ImportError:
         logger.warning("OpenCV not available for fallback detection")
         return []
@@ -399,48 +398,11 @@ class DetectService:
             logger.info(f"Detect: original_url is self-referencing, using processed_url instead")
             image_url = page.processed_url
         resolved_url = _resolve_image_url(image_url)
-        regions = []
-        image_data = None  # 用于后续边缘过滤获取真实页面尺寸
 
         logger.info(f"Detect: page={page_id}, image_url={image_url}, resolved_url={resolved_url}")
 
-        # 策略1: 调用 AI 微服务（使用解析后的绝对 URL）
+        # 调用 AI 微服务（唯一检测方式，不回退到 CV/PIL）
         regions = await _ai_detect(resolved_url, language=language)
-
-        # 策略2: 回退到本地 CV 检测
-        if regions is None:
-            # 优先从本地文件系统读取（project_uploads 卷挂载）
-            local_path = _url_to_local_path(image_url) if image_url else None
-            if local_path:
-                try:
-                    with open(local_path, "rb") as f:
-                        image_data = f.read()
-                    logger.info(f"Detect: loaded image from local path: {local_path} ({len(image_data)} bytes)")
-                except Exception as e:
-                    logger.warning(f"Detect: failed to read local file {local_path}: {e}")
-                    image_data = None
-
-            # 回退 HTTP 下载
-            if not image_data:
-                try:
-                    async with httpx.AsyncClient(timeout=30.0) as client:
-                        resp = await client.get(resolved_url)
-                        resp.raise_for_status()
-                        image_data = resp.content
-                    logger.info(f"Detect: downloaded image from {resolved_url} ({len(image_data)} bytes)")
-                except Exception as e:
-                    logger.warning(f"Detect: failed to download image from {resolved_url}: {e}")
-                    image_data = None
-
-            if image_data:
-                regions = await _cv_detect(image_data)
-                logger.info(f"Detect: CV detection found {len(regions)} regions")
-                if not regions:
-                    regions = await _pil_detect(image_data)
-                    logger.info(f"Detect: PIL detection found {len(regions)} regions")
-
-            if regions is None:
-                regions = []
 
         logger.info(f"Detect: total regions={len(regions)}")
 

@@ -19,6 +19,8 @@ from common.models.project import Project
 from common.models.text_region import TextRegion
 from ..repository.page_repo import PageRepository
 
+logger = logging.getLogger(__name__)
+
 # Supported extensions
 SUPPORTED_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif"}
 
@@ -231,9 +233,11 @@ class PageService:
             elif ext == ".webp":
                 if len(image_bytes) >= 30 and image_bytes[:4] == b"RIFF":
                     chunk_header = image_bytes[12:16]
-                    if chunk_header == b"VP8 " and len(image_bytes) >= 28:
-                        w = struct.unpack("<H", image_bytes[24:26])[0] & 0x3FFF
-                        h = struct.unpack("<H", image_bytes[26:28])[0] & 0x3FFF
+                    if chunk_header == b"VP8 " and len(image_bytes) >= 30:
+                        # VP8 frame: 20-byte RIFF header + 6-byte keyframe header (frame_tag+start_code)
+                        # width at bytes[26:28], height at bytes[28:30] (14-bit LE masked)
+                        w = struct.unpack("<H", image_bytes[26:28])[0] & 0x3FFF
+                        h = struct.unpack("<H", image_bytes[28:30])[0] & 0x3FFF
                         return (w, h)
                     elif chunk_header == b"VP8L" and len(image_bytes) >= 25:
                         bits = struct.unpack("<I", image_bytes[21:25])[0]
@@ -359,6 +363,8 @@ class PageService:
         """Update text regions on a page (batch create/update/delete)."""
         regions_data = data.get("regions", [])
         deleted_ids = data.get("deleted_regions", [])
+
+        logger.info(f"update_regions: page={page_id}, regions={len(regions_data)}, deleted={len(deleted_ids)}")
 
         # Delete specified regions
         for rid in deleted_ids:

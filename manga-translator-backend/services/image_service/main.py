@@ -19,9 +19,9 @@ from common.monitoring import setup_instrumentation, setup_json_logging
 from .api import detect, ocr, inpaint, render, enhance, batch, preprocess
 from .api import erase_quality, content_safety  # v3.0
 
-# Ensure uploads directory exists for MinIO fallback file writes
-# Prefer env-var, fallback to temp dir (WSL2 compatibility)
-_upload_dir = os.getenv("UPLOAD_DIR", "/tmp/manga-uploads")
+# Ensure uploads directory exists for local fallback file writes
+# Prefer settings.UPLOAD_DIR so it is consistent with project-service and survives reboots
+_upload_dir = os.environ.get("UPLOAD_DIR", settings.UPLOAD_DIR)
 UPLOADS_DIR = pathlib.Path(_upload_dir)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 

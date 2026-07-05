@@ -123,7 +123,11 @@ def _get_paddle_ocr(lang="ja"):
 
 
 def _ocr_with_paddle(crop: np.ndarray, lang: str = "ja") -> Tuple[str, float, List[float]]:
-    """使用 PaddleOCR PP-OCRv4 识别裁剪区域，返回 (text, confidence, char_confidences)。"""
+    """使用 PaddleOCR PP-OCRv4 识别裁剪区域，返回 (text, confidence, char_confidences)。
+
+    对预裁剪区域，PaddleOCR 的 DB 检测模型可能因找不到文本-背景边界而返回空。
+    此时自动回退到 recognition-only 模式（det=False），将整张裁剪图作为一行文本识别。
+    """
     paddle = _get_paddle_ocr(lang)
     if paddle is None:
         return "", 0.0, []
@@ -131,16 +135,31 @@ def _ocr_with_paddle(crop: np.ndarray, lang: str = "ja") -> Tuple[str, float, Li
         import cv2
         # PaddleOCR 需要 PIL Image 或文件路径
         pil_img = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB) if len(crop.shape) == 3 else crop)
-        results = paddle.ocr(np.array(pil_img))
-        if not results or not results[0]:
-            return "", 0.0, []
+        np_img = np.array(pil_img)
+
+        # 策略1: 全管道（det+rec）— 对预裁剪区域检测可能返回空
+        results = paddle.ocr(np_img)
+        det_failed = not results or not results[0]
+
+        # 策略2: 检测失败时回退到 recognition-only 模式
+        # 预裁剪区域中文本通常填满整个区域，DB检测器找不到边界时返回空
+        if det_failed:
+            logger.debug("PaddleOCR detection returned empty, retrying with det=False (recognition-only)")
+            results = paddle.ocr(np_img, det=False, rec=True, cls=False)
+            if not results or not results[0]:
+                return "", 0.0, []
 
         texts = []
         confs = []
         char_confs = []
-        for line in results[0]:
-            rec_text = line[1][0]  # 识别文本
-            rec_conf = line[1][1]  # 置信度
+        for item in results[0]:
+            if det_failed:
+                # det=False 模式：item 格式为 (text, score)
+                rec_text, rec_conf = item[0], item[1]
+            else:
+                # det=True 模式：item 格式为 [bbox, (text, score)]
+                rec_text = item[1][0]
+                rec_conf = item[1][1]
             if rec_text:
                 texts.append(rec_text)
                 confs.append(rec_conf)
@@ -184,6 +203,8 @@ def _check_mangaocr_available() -> bool:
 def _get_manga_ocr():
     """获取 manga-ocr 实例（懒加载，首次初始化会下载 ~400MB 模型）。"""
     global _manga_ocr_instance
+    # 确保使用国内镜像
+    os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
     if _manga_ocr_instance is None and _check_mangaocr_available():
         try:
             from manga_ocr import MangaOcr
@@ -754,12 +775,15 @@ def _ocr_single_region(args: Tuple[np.ndarray, Dict[str, Any], str, int, int]) -
         # manga-ocr 仅适用于日语，非日语自动跳过
         if engine_name == "mangaocr":
             if source_lang != "ja":
+                logger.debug(f"manga-ocr skipped: source_lang={source_lang}, not ja")
                 continue  # 非日语跳过 manga-ocr
             text, avg_confidence, char_confidences = _ocr_with_manga_ocr(crop_preprocessed)
+            logger.debug(f"manga-ocr result: text='{text[:20]}' conf={avg_confidence:.2f}")
             if text:
                 engine_used = "mangaocr_v0.1"
         elif engine_name == "paddleocr":
             text, avg_confidence, char_confidences = _ocr_with_paddle(crop_preprocessed, source_lang)
+            logger.debug(f"paddleocr result: text='{text[:20]}' conf={avg_confidence:.2f}")
             if text:
                 engine_used = "paddleocr_v4"
 

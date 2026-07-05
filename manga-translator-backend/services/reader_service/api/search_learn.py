@@ -116,16 +116,6 @@ async def get_learning_progress(
 
     rows = (await db.execute(query)).all()
 
-    # Fallback: if no items for the specified language, return all languages
-    if not rows and language:
-        all_query = (
-            select(Vocabulary, LearningProgress)
-            .join(LearningProgress, Vocabulary.vocab_id == LearningProgress.vocab_id, isouter=False)
-            .where(Vocabulary.user_id == user_id)
-            .order_by(LearningProgress.next_review_at.asc().nullslast())
-        )
-        rows = (await db.execute(all_query)).all()
-
     items = []
     for vocab, lp in rows:
         # Parse definition field (format: reading\nmeaning or just word)
@@ -213,7 +203,7 @@ async def get_review_list(
     rows = (await db.execute(query)).all()
     logger.info(f"getReview first try: {len(rows)} rows for user={current_user['sub']}, lang={language}")
 
-    # Fallback 1: 没有 due 的词时，返回该语言下 mastery_level 最低的 N 条
+    # Fallback: 没有 due 的词时，返回该语言下 mastery_level 最低的 N 条
     if not rows and language:
         fallback_query = (
             select(LearningProgress, Vocabulary)
@@ -227,20 +217,6 @@ async def get_review_list(
         )
         rows = (await db.execute(fallback_query.limit(count))).all()
         logger.info(f"getReview fallback (language={language}): {len(rows)} rows")
-
-    # Fallback 2: 如果指定语言没有词汇，返回所有语言下 mastery_level 最低的 N 条
-    if not rows:
-        all_lang_query = (
-            select(LearningProgress, Vocabulary)
-            .join(Vocabulary, LearningProgress.vocab_id == Vocabulary.vocab_id)
-            .where(LearningProgress.user_id == current_user["sub"])
-            .order_by(
-                LearningProgress.mastery_level.asc(),
-                LearningProgress.next_review_at.asc().nulls_first(),
-            )
-        )
-        rows = (await db.execute(all_lang_query.limit(count))).all()
-        logger.info(f"getReview fallback (all languages): {len(rows)} rows")
 
     items = []
     for lp, vocab in rows:
@@ -266,6 +242,7 @@ async def get_review_list(
             "last_review_at": lp.last_review_at.isoformat() if lp.last_review_at else None,
             "next_review_at": lp.next_review_at.isoformat() if lp.next_review_at else None,
             "streak_days": lp.streak_days or 0,
+            "example_sentence": vocab.example_sentence,
         })
 
     logger.info(f"getReview returning {len(items)} items")

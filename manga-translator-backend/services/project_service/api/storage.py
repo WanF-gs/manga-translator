@@ -18,7 +18,7 @@ from common.core.config import settings
 router = APIRouter()
 
 # Base directory for uploaded files
-UPLOAD_DIR = getattr(settings, "UPLOAD_DIR", "/tmp/manga-storage")
+UPLOAD_DIR = getattr(settings, "UPLOAD_DIR", "/mnt/c/Users/WanFi/Desktop/大三实训/demo_04/data/uploads")
 STORAGE_BASE = os.path.join(UPLOAD_DIR, "uploads")
 
 

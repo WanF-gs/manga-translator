@@ -99,6 +99,25 @@ class MemoryService:
         target_lang: str,
     ) -> None:
         """Store a translation in the cache — with dedup to prevent duplicate rows."""
+        # P1 FIX: validate translation quality before caching
+        # Reject obviously bad translations (only punctuation, empty, etc.)
+        if not translated_text or not translated_text.strip():
+            return
+        # Reject translations that consist only of punctuation/symbols
+        # (e.g., "。。", "。。。", "！？", etc.) — these are LLM failures
+        import re
+        has_content = re.search(r'[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff'
+                                r'\uac00-\ud7af\u0020-\u007e\u0100-\u024f'
+                                r'\u0400-\u04ff\u0e00-\u0e7f\u1e00-\u1eff'
+                                r'\u2000-\u206f]', translated_text)
+        if not has_content:
+            # Translation is only punctuation/symbols/whitespace — reject
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Rejecting low-quality cache: '{source_text[:40]}' → '{translated_text[:40]}'"
+            )
+            return
+
         # P1 FIX: check for existing cache entry before inserting
         existing = await self.repo.find_exact_match(
             project_id=project_id,

@@ -864,7 +864,7 @@ async def _process_dynamic_manga(task_id: str, req: DynamicMangaRequest):
                 # 兜底写入与 project-service 共享的存储卷，走 /storage 可下载
                 # （与 export_service 的落盘兜底一致，修正此前 /uploads/video 幽灵路径）
                 bucket = getattr(settings, 'MINIO_BUCKET', 'manga-translator')
-                upload_dir = getattr(settings, "UPLOAD_DIR", "/tmp/manga-storage")
+                upload_dir = getattr(settings, "UPLOAD_DIR", "/mnt/c/Users/WanFi/Desktop/大三实训/demo_04/data/uploads")
                 local_dir = os.path.join(upload_dir, "uploads", bucket, "dynamic")
                 os.makedirs(local_dir, exist_ok=True)
                 local_path = os.path.join(local_dir, f"{task_id}.mp4")

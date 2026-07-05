@@ -19,6 +19,7 @@ from common.core.security import get_current_user, get_optional_user
 from ..service.page_service import PageService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Separate router for upload endpoints only — mounted at /api/v1 prefix
 # to support /chapters/{cid}/pages/upload paths without polluting
@@ -211,6 +212,7 @@ async def update_regions(
         result = await service.update_regions(page_id, request_data)
         return success_response(data=result, message="Regions updated")
     except Exception as e:
+        logger.exception(f"update_regions FAILED for page {page_id}: {type(e).__name__}: {e}")
         return error_response(code=1001, message=str(e))
 
 
@@ -373,7 +375,7 @@ async def get_page_image(
         # Case 1: Local storage path (/storage/...) — 包含已渲染的 PDF 页面
         if original_url.startswith("/storage/"):
             from common.core.config import settings
-            storage_base = getattr(settings, "UPLOAD_DIR", "/tmp/manga-storage")
+            storage_base = getattr(settings, "UPLOAD_DIR", "/mnt/c/Users/WanFi/Desktop/大三实训/demo_04/data/uploads")
             file_path = os.path.join(storage_base, "uploads", original_url.replace("/storage/", "", 1).lstrip("/"))
             if os.path.isfile(file_path):
                 with open(file_path, "rb") as f:
@@ -401,7 +403,7 @@ async def get_page_image(
 
         # Case 3.5: /uploads/ path (image service rendered files)
         if original_url.startswith("/uploads/"):
-            upload_base = os.getenv("UPLOAD_DIR", "/tmp/manga-uploads")
+            upload_base = os.getenv("UPLOAD_DIR", "/mnt/c/Users/WanFi/Desktop/大三实训/demo_04/data/uploads")
             file_path = os.path.join(upload_base, original_url.lstrip("/"))
             if os.path.isfile(file_path):
                 with open(file_path, "rb") as f:

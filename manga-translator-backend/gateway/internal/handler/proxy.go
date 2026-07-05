@@ -20,7 +20,7 @@ import (
 var sharedTransport = &http.Transport{
 	DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
 	TLSHandshakeTimeout:   10 * time.Second,
-	ResponseHeaderTimeout: 30 * time.Second,
+	ResponseHeaderTimeout: 300 * time.Second,  // OCR/Inpaint 等长耗时操作需充裕时间
 	IdleConnTimeout:       90 * time.Second,
 	MaxIdleConns:          200,
 	MaxIdleConnsPerHost:   50,

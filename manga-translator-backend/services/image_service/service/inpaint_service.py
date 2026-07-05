@@ -41,8 +41,8 @@ logger = logging.getLogger(__name__)
 
 # 项目服务地址（用于解析相对 URL）
 STORAGE_BASE_URL = os.getenv("STORAGE_BASE_URL", "http://localhost:8002")
-LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", "/tmp/manga-storage/uploads")
-LOCAL_UPLOADS_DIR = os.getenv("LOCAL_UPLOADS_DIR", "/tmp/manga-uploads")
+LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", os.path.join(settings.UPLOAD_DIR, "uploads"))
+LOCAL_UPLOADS_DIR = os.getenv("LOCAL_UPLOADS_DIR", settings.UPLOAD_DIR)
 
 
 def _save_result_file(

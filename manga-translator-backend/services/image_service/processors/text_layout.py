@@ -9,6 +9,7 @@ Upgrades from basic bounding-box rules to:
 - Vertical text detection for Japanese manga right-to-left layouts
 """
 import logging
+import os
 from typing import List, Dict, Optional, Tuple
 import numpy as np
 

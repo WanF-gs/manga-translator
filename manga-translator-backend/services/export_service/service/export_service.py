@@ -68,14 +68,12 @@ def _save_image(img: Image.Image, format: str, quality: int) -> bytes:
 
 
 def _write_local_fallback(data: bytes, bucket: str, object_name: str) -> str:
-    """MinIO 不可用时，写入 project-service 共享的本地存储卷。
-
-    project-service 的 /storage/{path} 端点从 {UPLOAD_DIR}/uploads/{path} 读取，
-    并在磁盘未命中时回落到 MinIO。export-service 与 project-service 共享
-    project_uploads 卷（挂载于 /tmp/manga-storage），因此写到这里即可被下载。
+    """    MinIO 不可用时，写入 project-service 共享的本地存储目录
+    （基于 settings.UPLOAD_DIR，WSL2 下为项目 data/uploads 目录），
+    因此写到这里即可被 /storage/{path} 下载。
     返回与 MinIO 成功路径完全一致的 /storage/{bucket}/{object_name}，保证路径统一。
     """
-    upload_dir = getattr(settings, "UPLOAD_DIR", "/tmp/manga-storage")
+    upload_dir = getattr(settings, "UPLOAD_DIR", "/mnt/c/Users/WanFi/Desktop/大三实训/demo_04/data/uploads")
     full_path = os.path.join(upload_dir, "uploads", bucket, *object_name.split("/"))
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
     with open(full_path, "wb") as f:

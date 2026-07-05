@@ -89,6 +89,10 @@ class Settings:
     # Font directory for rendering
     FONT_DIR: str = os.getenv("FONT_DIR", "/app/fonts")
 
+    # Upload / Storage directory (must be on persistent filesystem, not /tmp)
+    # Default: project-local data directory under WSL2 so uploads survive reboots
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "/mnt/c/Users/WanFi/Desktop/大三实训/demo_04/data/uploads")
+
     # File Limits
     MAX_IMAGE_SIZE_MB: int = int(os.getenv("MAX_IMAGE_SIZE_MB", "50"))
     MAX_ARCHIVE_SIZE_MB: int = int(os.getenv("MAX_ARCHIVE_SIZE_MB", "500"))

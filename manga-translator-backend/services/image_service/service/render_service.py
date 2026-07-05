@@ -35,8 +35,8 @@ from common.models.text_region import TextRegion
 logger = logging.getLogger(__name__)
 
 STORAGE_BASE_URL = os.getenv("STORAGE_BASE_URL", "http://localhost:8002")
-LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", "/tmp/manga-storage/uploads")
-LOCAL_UPLOADS_DIR = os.getenv("LOCAL_UPLOADS_DIR", "/tmp/manga-uploads")
+LOCAL_STORAGE_ROOT = os.getenv("LOCAL_STORAGE_ROOT", os.path.join(settings.UPLOAD_DIR, "uploads"))
+LOCAL_UPLOADS_DIR = os.getenv("LOCAL_UPLOADS_DIR", settings.UPLOAD_DIR)
 
 # ============================================================
 # 字体系统
@@ -44,10 +44,12 @@ LOCAL_UPLOADS_DIR = os.getenv("LOCAL_UPLOADS_DIR", "/tmp/manga-uploads")
 
 FONT_SEARCH_PATHS = [
     settings.FONT_DIR,
+    "/usr/share/fonts/truetype/wqy",   # v12: WSL/Linux WQY Zen Hei (CJK default)
     "/usr/share/fonts",
     "/usr/local/share/fonts",
     "/usr/share/fonts/truetype/noto",
     "/usr/share/fonts/opentype/noto",
+    "/usr/share/fonts/truetype/droid",
     os.path.join(os.path.dirname(__file__), "fonts"),
     # 从 image_service/service/ 向上 4 层到 manga-translator-backend/，再进 fonts/
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "fonts"),
@@ -56,11 +58,16 @@ FONT_SEARCH_PATHS = [
 ]
 
 CJK_FONT_CANDIDATES = [
+    # v12: WSL/Linux system CJK fonts first (most likely available without extra install)
+    "wqy-zenhei.ttc", "wqy-microhei.ttc",
+    "DroidSansFallbackFull.ttf",
+    # Custom fonts from project fonts/ directory
     "NotoSansSC-Regular.otf", "NotoSansSC-VF.ttf", "NotoSansSC-Bold.otf",
     "SourceHanSansSC-Regular.otf", "SourceHanSansSC-Regular.ttf",
     "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf", "NotoSansJP-Bold.otf",
     "NotoSansKR-Regular.otf", "NotoSansKR-Bold.otf",
     "SourceHanSansK-Regular.otf", "SourceHanSansK-Regular.ttf",
+    "malgun.ttf", "malgunbd.ttf",
     "simsun.ttc", "simsun.ttf", "msyh.ttc", "msyh.ttf",
     "msgothic.ttc", "AppleGothic.ttf",
     "Arial.ttf", "DejaVuSans.ttf",
@@ -689,17 +696,20 @@ class RenderService:
                 from .font_resolver import resolve_region_font_path, glyph_fallback_path
                 region_font_id = region.get("font_id") or style.get("font_id")
                 char_id = getattr(db_region, "character_id", None)
+                logger.info(f"Region {region_id[:8]}: resolve font start, family={font_family}, font_id={region_font_id}, char_id={char_id}")
                 resolved_font_path, font_src = await resolve_region_font_path(
                     self.db,
                     font_id=region_font_id,
                     character_id=char_id,
                     font_family=font_family,
                 )
+                logger.info(f"Region {region_id[:8]}: resolve result path={resolved_font_path}, src={font_src}")
                 if resolved_font_path:
                     # 缺字回退（§2.25）：主字体覆盖不全则沿回退链换字体
                     resolved_font_path, missing_chars = glyph_fallback_path(
                         translated_text, resolved_font_path
                     )
+                    logger.info(f"Region {region_id[:8]}: fallback result path={resolved_font_path}, missing={missing_chars}")
                     if missing_chars:
                         warnings.append(
                             f"MISSING_GLYPH:{region_id}:{''.join(missing_chars[:20])}"
@@ -708,7 +718,7 @@ class RenderService:
                     font_family = resolved_font_path
                     logger.debug(f"Region {region_id[:8]}: font via {font_src} -> {resolved_font_path}")
             except Exception as e:
-                logger.debug(f"Region {region_id[:8]}: font resolve skipped: {e}")
+                logger.warning(f"Region {region_id[:8]}: font resolve FAILED: {type(e).__name__}: {e}")
 
             # 是否为拟声词（大字号、粗体）
             is_sfx = region_type == "onomatopoeia"
@@ -717,8 +727,10 @@ class RenderService:
                 font_color = "#000000"
 
             # 获取字体
+            logger.info(f"Region {region_id[:8]}: _get_font(family={font_family}, size={font_size})")
             font = _get_font(family=font_family, size=font_size)
             if font is None:
+                logger.warning(f"Region {region_id[:8]}: _get_font returned None, trying _find_font")
                 font = _find_font(size=font_size)
             if font is None:
                 warnings.append(f"区域 {region_id[:8]} 无可用字体，跳过")
@@ -874,7 +886,7 @@ class RenderService:
             result_url = f"/storage/{bucket}/{object_name}"
         except Exception as e:
             logger.warning(f"MinIO upload failed: {e}, falling back to local disk")
-            local_dir = pathlib.Path(os.getenv("UPLOAD_DIR", "/tmp/manga-uploads")) / "pages" / page_id
+            local_dir = pathlib.Path(os.getenv("UPLOAD_DIR", settings.UPLOAD_DIR)) / "pages" / page_id
             local_dir.mkdir(parents=True, exist_ok=True)
             local_path = local_dir / f"rendered_{task_id}.png"
             local_path.write_bytes(output_buffer.getvalue())

@@ -146,7 +146,13 @@ class TranslationService:
                     project_id=project_id, source_text=text,
                     source_lang=source_lang, target_lang=target_lang,
                 )
-            if cached:
+            # P2 fix: validate cached translation quality — reject pure-punctuation caches
+            _has_valid_cached = cached and re.search(
+                r'[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff'
+                r'\uac00-\ud7af\u0020-\u007e\u0100-\u024f'
+                r'\u0400-\u04ff\u0e00-\u0e7f]', cached
+            )
+            if cached and _has_valid_cached:
                 region.translated_text = cached[:1000]
                 translated_regions[idx] = {
                     "region_id": str(region.region_id),
@@ -156,6 +162,10 @@ class TranslationService:
                     "alternative_translations": [],
                 }
                 cache_hits += 1
+            elif cached and not _has_valid_cached:
+                # Stale/bad cache — delete it and re-translate
+                logger.warning(f"Invalidating bad cache for '{text[:30]}' → '{cached[:30]}'")
+                uncached.append((idx, region))
             else:
                 uncached.append((idx, region))
 

@@ -48,10 +48,12 @@ FONT_SEARCH_PATHS = [
     os.getenv("FONT_DIR", "/app/fonts"),
     os.path.join(_BACKEND_ROOT, "fonts"),       # manga-translator-backend/fonts
     os.path.join(_SVC_ROOT, "fonts"),           # services/fonts (兜底)
+    "/usr/share/fonts/truetype/wqy",            # WSL/Linux WQY Zen Hei (CJK)
     "/usr/share/fonts",
     "/usr/local/share/fonts",
     "/usr/share/fonts/truetype/noto",
     "/usr/share/fonts/opentype/noto",
+    "/usr/share/fonts/truetype/droid",
     "C:/Windows/Fonts",
 ]
 
@@ -97,6 +99,17 @@ BUILTIN_FONT_FILES = {
     "动漫英文粗体": ["anime_ace.ttf", "anime_ace_3.ttf", "NotoSansSC-Bold.otf"],
     "漫画手写英文": ["comic shanns 2.ttf", "LXGWWenKai-Regular.ttf"],
     "日文哥特体": ["msgothic.ttc", "NotoSansJP-Bold.otf", "NotoSansJP-Regular.otf"],
+
+    # -- v12: FALLBACK_CHAINS logical name to actual file mapping --
+    "Noto Sans CJK SC": ["NotoSansCJK-Regular.ttc", "NotoSansSC-Regular.otf", "wqy-zenhei.ttc"],
+    "Noto Sans CJK JP": ["NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf", "wqy-zenhei.ttc"],
+    "Noto Sans CJK KR": ["NotoSansCJK-Regular.ttc", "NotoSansKR-Regular.otf", "wqy-zenhei.ttc"],
+    "WenQuanYi Micro Hei": ["wqy-microhei.ttc", "wqy-zenhei.ttc"],
+    "Microsoft YaHei": ["msyh.ttc", "msyh.ttf", "NotoSansSC-Regular.otf"],
+    "SimHei": ["simhei.ttf", "NotoSansSC-Bold.otf"],
+    "IPAexGothic": ["NotoSansJP-Regular.otf", "wqy-zenhei.ttc"],
+    "Noto Sans": ["DejaVuSans.ttf", "Arial.ttf"],
+    "wqy-zenhei": ["wqy-zenhei.ttc"],
 }
 
 _path_cache: dict = {}
@@ -241,6 +254,12 @@ async def resolve_region_font_path(
         p = _resolve_builtin(font_family) or _find_file_in_paths([font_family])
         if p:
             return p, "font_family"
+
+    # 4. 兜底：无任何配置时返回通用 CJK 字体（避免用英文-only 字体渲染日/中/韩文变 ●●●）
+    cjk_default = _find_file_in_paths(["NotoSansSC-Regular.otf", "NotoSansJP-Regular.otf", "wqy-zenhei.ttc"])
+    if cjk_default:
+        return cjk_default, "cjk_default"
+
     return None, "default"
 
 
@@ -255,7 +274,9 @@ def glyph_fallback_path(text: str, primary_path: Optional[str]) -> Tuple[Optiona
 
     # 检查主字体覆盖
     if primary_path:
-        cov = check_glyph_coverage(text, font_path=primary_path)
+        # v12: pass font_name so heuristic works when fontTools unavailable
+        font_name_hint = os.path.basename(primary_path) if primary_path else None
+        cov = check_glyph_coverage(text, font_path=primary_path, font_name=font_name_hint)
         if not cov.get("needs_fallback"):
             return primary_path, []
         missing_after = cov.get("missing_chars", [])
@@ -269,7 +290,8 @@ def glyph_fallback_path(text: str, primary_path: Optional[str]) -> Tuple[Optiona
         cand = _find_file_in_paths(BUILTIN_FONT_FILES.get(fam, [fam]))
         if not cand:
             continue
-        cov = check_glyph_coverage(text, font_path=cand)
+        # v12: pass font_name for heuristic coverage check
+        cov = check_glyph_coverage(text, font_path=cand, font_name=os.path.basename(cand))
         if not cov.get("needs_fallback"):
             logger.info(f"[FontResolver] 缺字回退命中: {fam} -> {cand}")
             return cand, []

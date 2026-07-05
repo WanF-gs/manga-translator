@@ -24,12 +24,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from common.core.config import settings
 from common.models.page import Page
 
 logger = logging.getLogger(__name__)
 
 STORAGE_BASE_URL = os.getenv("STORAGE_BASE_URL", "http://localhost:8002")
-LOCAL_UPLOADS_DIR = os.getenv("LOCAL_UPLOADS_DIR", "/tmp/manga-uploads")
+LOCAL_UPLOADS_DIR = os.getenv("LOCAL_UPLOADS_DIR", settings.UPLOAD_DIR)
 
 
 def _save_enhanced(data: bytes, page_id: str, task_id: str, prefix: str) -> str:

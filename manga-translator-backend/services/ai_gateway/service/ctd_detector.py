@@ -25,7 +25,7 @@ DEFAULT_MODEL_PATH = os.path.join(
 )
 INPUT_SIZE = 1024
 CONF_THRESH = float(os.getenv("CTD_CONF_THRESH", "0.25"))
-MASK_THRESH = float(os.getenv("CTD_MASK_THRESH", "0.10"))  # 0.10: permissive mask for max text recall (env var override supported)
+MASK_THRESH = float(os.getenv("CTD_MASK_THRESH", "0.02"))  # 0.02: very permissive for max text recall on low-res manga
 
 
 # === Global model cache ===
@@ -100,6 +100,15 @@ def detect_with_ctd(
         return []
 
     im_h, im_w = image.shape[:2]
+
+    # 对低分辨率图片进行上采样，提升 CTD 检测召回率
+    # 漫画文字在 348x498 等低分辨率下几乎不可见，放大 2x 让文字特征更清晰
+    scale = 1.0
+    if max(im_h, im_w) < 600:
+        scale = 2.0
+        image = cv2.resize(image, (int(im_w * scale), int(im_h * scale)), interpolation=cv2.INTER_CUBIC)
+        im_h, im_w = image.shape[:2]
+        logger.info(f"CTD: upscaled image by {scale}x for better detection ({int(im_w/scale)}x{int(im_h/scale)} → {im_w}x{im_h})")
 
     # Preprocess: letterbox to 1024x1024
     img_in, ratio, top_pad, bottom_pad, left_pad, right_pad = _letterbox(image, INPUT_SIZE)

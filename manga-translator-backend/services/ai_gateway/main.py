@@ -187,22 +187,19 @@ async def lifespan(app: FastAPI):
     try:
         # 兼容 uvicorn 启动方式（main:app）和直接运行
         try:
-            from service.ocr_engine import _get_manga_ocr, _get_paddle_ocr, _get_rapid_ocr
+            from service.ocr_engine import _get_manga_ocr, _get_paddle_ocr
         except ImportError:
-            from ai_gateway.service.ocr_engine import _get_manga_ocr, _get_paddle_ocr, _get_rapid_ocr
+            from ai_gateway.service.ocr_engine import _get_manga_ocr, _get_paddle_ocr
 
         import asyncio
         loop = asyncio.get_event_loop()
 
-        # 并行预加载三个引擎
+        # 并行预加载 manga-ocr + PaddleOCR 引擎
         await loop.run_in_executor(None, _get_manga_ocr)
         logger.info("manga-ocr model preloaded")
 
         await loop.run_in_executor(None, _get_paddle_ocr)
         logger.info("PaddleOCR model preloaded")
-
-        await loop.run_in_executor(None, _get_rapid_ocr)
-        logger.info("RapidOCR model preloaded")
 
         logger.info("All OCR engines preloaded successfully")
     except Exception as e:

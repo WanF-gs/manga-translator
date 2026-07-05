@@ -77,7 +77,7 @@ async def extract_vocabulary_from_page(
         if not regions:
             return 0
 
-        # Tokenize
+        # Tokenize + collect example sentences
         pattern = _WORD_PATTERNS.get(source_lang)
         if not pattern:
             logger.debug(f"[VocabExtract] skip: unsupported lang {source_lang}")
@@ -85,8 +85,8 @@ async def extract_vocabulary_from_page(
 
         seen: set[str] = set()
         words_to_add: list[str] = []
-        # word -> translated_text mapping (for bilingual display)
-        word_to_translation: dict[str, str] = {}
+        # word -> best example sentence mapping
+        word_to_example: dict[str, tuple[str, str]] = {}
         for r in regions:
             original = r.original_text or ""
             translated = r.translated_text or ""
@@ -95,8 +95,9 @@ async def extract_vocabulary_from_page(
                 if w not in seen:
                     seen.add(w)
                     words_to_add.append(w)
-                if w not in word_to_translation and translated:
-                    word_to_translation[w] = translated
+                # Store the shortest example sentence (more relevant than long paragraphs)
+                if w not in word_to_example or len(original) < len(word_to_example[w][0]):
+                    word_to_example[w] = (original, translated)
 
         if not words_to_add:
             return 0
@@ -111,20 +112,55 @@ async def extract_vocabulary_from_page(
         )
         existing_words = {row[0] for row in existing_result.fetchall()}
 
+        # For Japanese: batch lookup dictionary definitions
+        dict_results: dict[str, Optional[dict]] = {}
+        if source_lang == "ja" and words_to_add:
+            try:
+                from common.utils.dictionary_service import batch_lookup_japanese
+                dict_results = await batch_lookup_japanese(words_to_add)
+            except Exception as e:
+                logger.debug(f"[VocabExtract] dict lookup failed: {e}")
+
         now = datetime.now(timezone.utc)
         new_count = 0
 
         for word in words_to_add:
             if word in existing_words:
                 continue
-            # Build definition as "word\ntranslation" if translation exists
-            translation = word_to_translation.get(word, "")
-            definition = f"{word}\n{translation}" if translation and translation != word else word
+            
+            # Build definition: prefer dictionary lookup, fallback to example sentence translation
+            dict_entry = dict_results.get(word)
+            if dict_entry:
+                reading = dict_entry.get("reading", "")
+                defs = dict_entry.get("definitions", [])
+                translation = "; ".join(defs[:2]) if defs else ""
+                pos = dict_entry.get("part_of_speech", "")
+            # 截断到 49 字符（DB 列 VARCHAR(50) 限制）
+            if len(pos) > 49:
+                pos = pos[:49]
+                # Store as "reading\ntranslation" if reading differs from word
+                if reading and reading != word:
+                    definition = f"{reading}\n{translation}" if translation else word
+                else:
+                    definition = f"{word}\n{translation}" if translation else word
+            else:
+                # Fallback: use example sentence translation (shortest matching sentence)
+                example = word_to_example.get(word, ("", ""))
+                translation = example[1] if example[1] and example[1] != word else ""
+                definition = f"{word}\n{translation}" if translation else word
+                pos = ""
+
+            # Example sentence: source sentence + its translation
+            example = word_to_example.get(word, ("", ""))
+            example_text = f"{example[0]}\n{example[1]}" if example[1] else example[0]
+
             vocab = Vocabulary(
                 user_id=uid,
                 word=word,
                 language=source_lang,
                 definition=definition,
+                part_of_speech=pos,
+                example_sentence=example_text[:500] if example_text else None,
                 source_project_id=project_id,
             )
             db.add(vocab)
@@ -140,7 +176,7 @@ async def extract_vocabulary_from_page(
             db.add(lp)
             new_count += 1
 
-        # Check and unlock achievements for vocabulary milestones
+        # Check achievements after adding new vocab
         if new_count > 0:
             try:
                 from common.utils.achievement_checker import check_and_unlock_achievements

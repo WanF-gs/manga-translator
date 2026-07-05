@@ -35,8 +35,8 @@ BUBBLE_AREA_RATIO_MAX = 0.20        # Max bubble area ratio (was 0.35 — bubble
 # - merge_dist_floor: 0.02 → 0.015 (absolute minimum from 49→37px on HD manga)
 # This prevents separate adjacent bubbles from being fused while still merging
 # fragmented text within a single bubble.
-MERGE_DISTANCE_RATIO = 0.05         # Floor: absolute-min merge distance as ratio of diagonal
-MERGE_FONT_SIZE_MULTIPLIER = 1.0    # v8: Merge if center distance < 1.0 × min(ha, hb) (was 1.8)
+MERGE_DISTANCE_RATIO = 0.03         # v11: 0.05→0.03: tighter merge to prevent over-merging adjacent bubbles
+MERGE_FONT_SIZE_MULTIPLIER = 0.6    # v11: 1.0→0.6: much tighter distance for small manga text
 MERGE_FONT_RATIO_MAX = 1.8          # Reject merge if box heights differ > 1.8x (title vs small text)
 MERGE_ASPECT_RATIO_DIFF_MAX = 2.5   # Reject merge if aspect ratios differ > 2.5x (wide narration vs tall bubble)
 MERGE_SPLIT_GAP_MULTIPLIER = 1.5    # v8: Split cluster if vertical gap > 1.5× avg font height (was 2.0)
@@ -52,22 +52,19 @@ MIN_REGION_HEIGHT = 8               # 10→8: 允许更矮的文字区域
 MIN_REGION_AREA = 150               # 250→150: 允许更小的文字区域（小字/拟声词）
 MAX_REGION_COUNT = 40               # PRD expects ~5-25 per page, allow up to 40 for dense manga
 
-# Text content verification thresholds (v8: further relaxed for manga diversity)
-# Manga text comes in many forms: white-on-dark, vertical, tiny, stylized.
-# Rejecting any of these is worse than accepting a few false positives
-# (which can be manually deleted). Precision is secondary to recall.
-TEXT_DARK_PIXEL_RATIO_MIN = 0.005   # v8: 0.01→0.005: 允许更稀疏的暗像素（白色文字在深色气泡上）
-TEXT_DARK_PIXEL_RATIO_MAX = 0.85    # Allow dense text areas (dark backgrounds)
-TEXT_EDGE_DENSITY_MIN = 0.002       # v8: 0.003→0.002: 降低边缘密度要求（艺术字/手写体边缘弱）
-TEXT_ASPECT_RATIO_MIN = 0.08        # v8: 0.1→0.08: 更窄的竖排文字
-TEXT_ASPECT_RATIO_MAX = 15.0        # v8: 12→15: 更宽的横幅文字
-TEXT_MIN_CHAR_COUNT = 1             # Single characters OK ("！", "？", small kana)
-TEXT_H_STD_MIN = 0.2                # v9: 0.5→0.2: 极低投影方差容忍（竖排+小文字区域）
-TEXT_CONTRAST_MIN = 0.3             # v9: 1.0→0.3: 极低对比度容忍（浅色气泡内灰色文字/反色文字）
-TEXT_SOLID_FILL_MAX = 0.96          # v9: 0.92→0.96: 漫画网点纸/渐变背景误判为实心填充的边界情况
-# v8 NEW: Light pixel ratio range for inverted text (white-on-dark bubbles)
-TEXT_LIGHT_PIXEL_RATIO_MIN = 0.01   # At least 1% light pixels for inverted text
-TEXT_LIGHT_PIXEL_RATIO_MAX = 0.85   # Max light pixels before considered solid
+# Text content verification thresholds (v11: further relaxed for low-res manga)
+# Ultra-low thresholds to avoid filtering real text in tiny regions
+TEXT_DARK_PIXEL_RATIO_MIN = 0.002   # v11: 0.003→0.002
+TEXT_DARK_PIXEL_RATIO_MAX = 0.92    # v11: 0.90→0.92
+TEXT_EDGE_DENSITY_MIN = 0.0005      # v11: 0.001→0.0005 for very low-res blur
+TEXT_ASPECT_RATIO_MIN = 0.03        # v11: 0.05→0.03 for extremely narrow vertical text
+TEXT_ASPECT_RATIO_MAX = 25.0        # v11: 20→25 for very wide banners
+TEXT_MIN_CHAR_COUNT = 1             # Single characters OK
+TEXT_H_STD_MIN = 0.05               # v11: 0.1→0.05 for very low-res projection
+TEXT_CONTRAST_MIN = 0.15            # v11: 0.2→0.15 for very low contrast manga
+TEXT_SOLID_FILL_MAX = 0.99          # v11: 0.98→0.99 for extremely dense text areas
+TEXT_LIGHT_PIXEL_RATIO_MIN = 0.003  # v11: 0.005→0.003 for inverted text
+TEXT_LIGHT_PIXEL_RATIO_MAX = 0.92   # v11: 0.90→0.92
 
 # Region type classification thresholds
 OVAL_ROUNDNESS_THRESHOLD = 0.7
@@ -336,26 +333,25 @@ def _merge_nearby_boxes(boxes: List[Tuple[int, int, int, int]],
 
 def _verify_text_content(gray_roi: np.ndarray, box_coords: str = "") -> Tuple[bool, float]:
     """
-    PRD P0 PRECISION FIX v8: Verify if a detected region contains text content.
+    PRD P0 PRECISION FIX v12: Verify if a detected region contains text content.
     
-    v8 improvements:
-    - Inverted text detection: white/light text on dark bubble background
-    - Relaxed thresholds for manga diversity (white-on-dark, vertical, tiny)
-    - Debug logging to identify which feature rejected each region
+    v12 CHANGE: Scoring-based verification (was strict AND-gate in v11).
+    Each of the 6 features contributes to a weighted score. As long as the
+    total score exceeds MIN_VERIFY_SCORE (0.25), the region is kept.
+    This prevents over-filtering of legitimate manga text regions that may
+    fail one or two features (e.g., low contrast on gradient backgrounds,
+    low edge density in very small text).
     
-    Multi-feature analysis:
-    - Feature 0: Solid fill detection (reject fully-inked areas)
-    - Feature 1: Dark pixel ratio (black text) OR light pixel ratio (white text)
-    - Feature 2: Edge density (text has lots of internal edges)
-    - Feature 3: Connected component analysis for character-like shapes
-    - Feature 4: Text-background contrast check (std dev of pixel values)
-    - Feature 5: Horizontal projection structure (line-like patterns)
+    Individual features that are clearly NOT text (solid fill, zero components,
+    extreme pixel ratios) still cause immediate rejection.
     
     Returns: (is_text_region, confidence_adjustment)
     """
     import cv2
+    MIN_VERIFY_SCORE = 0.25  # v12: Scoring threshold instead of per-feature AND
     h, w = gray_roi.shape[:2]
-    if h < 8 or w < 8:
+    if h < 6 or w < 6:
+        logger.debug(f"Verify: REJECTED {box_coords} — too small ({w}x{h})")
         return False, 0.0
     
     # Feature 0: REPETITIVE PATTERN REJECTION (DISABLED for manga)
@@ -363,33 +359,23 @@ def _verify_text_content(gray_roi: np.ndarray, box_coords: str = "") -> Tuple[bo
     # Feature 1: Dark/light pixel ratio analysis
     dark_pixels = np.sum(gray_roi < 128) / (w * h + 1e-6)
     very_dark_pixels = np.sum(gray_roi < 64) / (w * h + 1e-6)
-    light_pixels = np.sum(gray_roi > 200) / (w * h + 1e-6)  # v8: for inverted text
+    light_pixels = np.sum(gray_roi > 200) / (w * h + 1e-6)
     
-    # Reject solid fills (inked areas, backgrounds)
+    # Hard reject: solid fills (inked areas, backgrounds) — still a strong signal
     if very_dark_pixels > TEXT_SOLID_FILL_MAX:
+        logger.debug(f"Verify: REJECTED {box_coords} — solid fill (very_dark={very_dark_pixels:.3f})")
         return False, 0.0
     
-    # v8: Handle inverted text (white/light on dark background).
-    # Manga often has white text on dark bubbles — dark pixel ratio will be high
-    # but the actual text is light. Check if light pixels suggest text.
+    # v12: Scoring-based instead of hard reject for pixel ratio
     is_inverted = (dark_pixels > TEXT_DARK_PIXEL_RATIO_MAX and 
                    TEXT_LIGHT_PIXEL_RATIO_MIN < light_pixels < TEXT_LIGHT_PIXEL_RATIO_MAX)
-    
-    # Standard text (dark on light): dark pixel ratio in normal range
     is_standard = (TEXT_DARK_PIXEL_RATIO_MIN < dark_pixels < TEXT_DARK_PIXEL_RATIO_MAX)
-    
-    if not is_standard and not is_inverted:
-        return False, 0.0
     
     # Feature 2: Edge density
     edges = cv2.Canny(gray_roi, 50, 150)
     edge_density = np.sum(edges > 0) / (w * h + 1e-6)
     
-    if edge_density < TEXT_EDGE_DENSITY_MIN:
-        return False, 0.0
-    
     # Feature 3: Connected component analysis
-    # v8: For inverted text, invert the image before CC analysis
     if is_inverted:
         cc_input = cv2.bitwise_not(gray_roi)
     else:
@@ -398,7 +384,9 @@ def _verify_text_content(gray_roi: np.ndarray, box_coords: str = "") -> Tuple[bo
     _, binary = cv2.threshold(cc_input, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
     
-    if num_labels <= 2:
+    # Hard reject: absolutely no separable components
+    if num_labels <= 1:
+        logger.debug(f"Verify: REJECTED {box_coords} — zero components (num_labels={num_labels})")
         return False, 0.0
     
     # Count character-like components
@@ -407,43 +395,65 @@ def _verify_text_content(gray_roi: np.ndarray, box_coords: str = "") -> Tuple[bo
         cc_area = stats[i, cv2.CC_STAT_AREA]
         cc_w = stats[i, cv2.CC_STAT_WIDTH]
         cc_h = stats[i, cv2.CC_STAT_HEIGHT]
-        if 3 < cc_area < 5000 and 0.1 < (cc_w / max(cc_h, 1)) < 10:
+        if 2 < cc_area < 8000 and 0.05 < (cc_w / max(cc_h, 1)) < 15:
             char_count += 1
-    
-    if char_count < TEXT_MIN_CHAR_COUNT:
-        return False, 0.0
     
     # Feature 4: Contrast check
     roi_std = float(np.std(gray_roi.astype(np.float32)))
-    if roi_std < TEXT_CONTRAST_MIN:
-        return False, 0.0
     
-    # Feature 5: Horizontal projection structure
-    # v8: For potentially vertical text, use vertical projection too
+    # Feature 5: Projection structure
     h_proj = np.mean(binary, axis=1)
     v_proj = np.mean(binary, axis=0)
     h_std = np.std(h_proj)
     v_std = np.std(v_proj)
-    # Use the stronger signal (either horizontal or vertical structure)
     proj_std = max(h_std, v_std)
     
-    if proj_std < TEXT_H_STD_MIN:
-        return False, 0.0
+    # ── v12: Weighted scoring ──
+    # Score each feature 0.0–1.0, then combine
     
-    # Calculate confidence adjustment
-    char_score = min(1.0, char_count / 20.0)
+    # Pixel score: 1.0 if in standard range or inverted, 0.3 otherwise (still might be text)
+    pixel_score = 1.0 if (is_standard or is_inverted) else 0.25
+    
+    # Edge score
     edge_score = min(1.0, edge_density / 0.15)
-    dark_score = 1.0 if (0.08 < dark_pixels < 0.45) else (0.6 if not is_inverted else 0.7)
+    
+    # Component score
+    comp_score = min(1.0, num_labels / 8.0)  # 8+ components = full score
+    
+    # Char count score
+    char_score = min(1.0, char_count / 10.0)  # 10+ chars = full score
+    
+    # Contrast score
     contrast_score = min(1.0, roi_std / 80.0)
+    
+    # Projection score
     proj_score = min(1.0, proj_std / 20.0)
     
-    confidence_adj = (
-        0.25 * char_score + 0.25 * edge_score + 
-        0.20 * dark_score + 0.15 * contrast_score + 
-        0.15 * proj_score
+    total_score = (
+        0.20 * pixel_score +
+        0.25 * edge_score +
+        0.15 * comp_score +
+        0.15 * char_score +
+        0.12 * contrast_score +
+        0.13 * proj_score
     )
     
-    return True, confidence_adj
+    if total_score < MIN_VERIFY_SCORE:
+        logger.debug(
+            f"Verify: REJECTED {box_coords} — score={total_score:.2f} < {MIN_VERIFY_SCORE} "
+            f"(pixel={pixel_score:.2f}, edge={edge_score:.2f}, comp={comp_score:.2f}, "
+            f"char={char_score:.2f}, contrast={contrast_score:.2f}, proj={proj_score:.2f})"
+        )
+        return False, 0.0
+    
+    logger.debug(
+        f"Verify: KEPT {box_coords} — score={total_score:.2f} "
+        f"(pixel={pixel_score:.2f}, edge={edge_score:.2f}, comp={comp_score:.2f}, "
+        f"char={char_score:.2f}, contrast={contrast_score:.2f}, proj={proj_score:.2f})"
+    )
+    
+    # Confidence adjustment based on total score
+    return True, total_score
 
 
 def _is_edge_region(box: Tuple[int, int, int, int], img_w: int, img_h: int, 
@@ -467,19 +477,26 @@ def _is_edge_region(box: Tuple[int, int, int, int], img_w: int, img_h: int,
     is_small = (bw * bh) < (img_w * img_h * 0.003)
     
     if (at_left or at_right or at_top or at_bottom) and is_small:
-        # Further verification: check if region contains numeric or signature patterns
+        # Further verification: check if region contains character-like components.
+        # Regions with clear text structure should NOT be filtered even at edges.
         roi = gray_full[y:y+bh, x:x+bw]
         if roi.size > 0:
-            # Edge regions with very few character components are likely noise
             try:
                 import cv2
                 _, binary = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
                 num_labels = cv2.connectedComponentsWithStats(binary, connectivity=8)[0]
                 if num_labels <= 3:
-                    return True  # Too few components = page number/signature noise
-            except:
+                    # Too few components = likely page number/signature/artifact noise
+                    logger.info(f"Edge-filter: REJECTED small edge region ({x},{y}) {bw}x{bh} (num_labels={num_labels})")
+                    return True
+                # Has sufficient character components → likely actual text, keep it
+                logger.info(f"Edge-filter: KEPT small edge region ({x},{y}) {bw}x{bh} (num_labels={num_labels} — text detected)")
+                return False
+            except Exception:
                 pass
-        return is_small
+        # Could not verify ROI — safe to keep (don't risk false-positive filtering)
+        logger.info(f"Edge-filter: KEPT small edge region ({x},{y}) {bw}x{bh} (ROI unreadable, keeping)")
+        return False
     
     return False
 
@@ -649,6 +666,29 @@ def _detect_bubble_outlines(gray: np.ndarray, img_rgb: np.ndarray) -> List[Tuple
         scores = [1.0] * len(bubbles)
         keep_indices = nms(bubbles, scores, iou_threshold=0.15)
         bubbles = [bubbles[i] for i in keep_indices]
+
+    # ================================================================
+    # Bubble content validation: filter out non-text bubbles (e.g. faces, backgrounds)
+    # A true speech bubble must contain text-like features inside.
+    # ================================================================
+    validated_bubbles = []
+    for bx, by, bw, bh in bubbles:
+        roi = gray[by:by+bh, bx:bx+bw]
+        if roi.size == 0:
+            continue
+        # Check for text-like features: dark pixels (text strokes) and edge density
+        dark_pixels = np.sum(roi < 128) / roi.size
+        edges = cv2.Canny(roi, 50, 150)
+        edge_density = np.sum(edges > 0) / roi.size
+        # Text bubbles should have some dark text and edges
+        if dark_pixels < 0.005 and edge_density < 0.001:
+            logger.debug(f"  Bubble validation: REJECTED non-text bubble at ({bx},{by}) {bw}x{bh} (dark={dark_pixels:.4f}, edge={edge_density:.4f})")
+            continue
+        validated_bubbles.append((bx, by, bw, bh))
+    
+    if len(validated_bubbles) < len(bubbles):
+        logger.info(f"Phase 1: bubble validation filtered {len(bubbles) - len(validated_bubbles)} non-text bubbles, kept {len(validated_bubbles)}")
+    bubbles = validated_bubbles
 
     logger.info(f"Phase 1: bubble detection => {len(bubbles)} total (mean_brightness={mean_brightness:.0f})")
     return bubbles
@@ -1072,38 +1112,44 @@ async def detect_text_regions(
         logger.info(f"Image loaded: {w}x{h}, dtype={img.dtype}")
 
         # §6: Super-resolution preprocessing — upscale low-res images before detection
-        # manga-image-translator style: upscale for better OCR accuracy
+        # waifu2x-ncnn-vulkan (anime model) → Lanczos fallback
         scale_factor = 1.0
-        if min(w, h) < 800:
-            try:
-                scale_factor = min(2.0, 800.0 / min(w, h))
-                import importlib
-                if importlib.util.find_spec("realesrgan"):
-                    from basicsr.archs.rrdbnet_arch import RRDBNet
-                    from realesrgan import RealESRGANer
-                    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=6, num_grow_ch=32, scale=4)
-                    model_path = os.getenv("REALESRGAN_ANIME_MODEL", "")
-                    upsampler = RealESRGANer(scale=4, model_path=model_path if os.path.exists(model_path) else None, model=model, tile=400, tile_pad=10, pre_pad=0, half=False)
-                    output, _ = upsampler.enhance(img, outscale=scale_factor)
-                    new_h, new_w = output.shape[:2]
-                    img = cv2.resize(output, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_LANCZOS4)
-                    logger.info(f"Super-resolution preprocessing: {w}x{h} → {img.shape[1]}x{img.shape[0]} (scale={scale_factor:.1f}x)")
-                else:
-                    img = cv2.resize(img, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_LANCZOS4)
-                    logger.info(f"Lanczos upscale preprocessing: {w}x{h} → {img.shape[1]}x{img.shape[0]}")
-            except Exception as e:
-                logger.warning(f"Super-resolution preprocessing failed, continuing with original: {e}")
-
+        orig_h, orig_w = h, w
+        if min(w, h) < 500:
+            scale_factor = 2.0
+            import subprocess, tempfile, shutil
+            waifu2x_bin = shutil.which("waifu2x-ncnn-vulkan") or \
+                          os.path.expanduser("~/.local/bin/waifu2x-ncnn-vulkan")
+            upscaled = None
+            if os.path.isfile(waifu2x_bin):
+                try:
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f_in, \
+                         tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f_out:
+                        cv2.imwrite(f_in.name, img)
+                        f_out_path = f_out.name
+                    subprocess.run(
+                        [waifu2x_bin, "-i", f_in.name, "-o", f_out_path,
+                         "-s", "2", "-n", "0", "-g", "-1"],
+                        capture_output=True, timeout=30
+                    )
+                    result = cv2.imread(f_out_path)
+                    if result is not None:
+                        img = result
+                        upscaled = True
+                        logger.info(f"waifu2x upscaled: {orig_w}x{orig_h} → {img.shape[1]}x{img.shape[0]}")
+                    os.unlink(f_in.name)
+                    os.unlink(f_out_path)
+                except Exception as e:
+                    logger.info(f"waifu2x failed ({e}), falling back to Lanczos")
+            if not upscaled:
+                img = cv2.resize(img, (int(orig_w * 2), int(orig_h * 2)), interpolation=cv2.INTER_LANCZOS4)
+                logger.info(f"Lanczos upscaled: {orig_w}x{orig_h} → {img.shape[1]}x{img.shape[0]}")
+        # CRITICAL: define gray OUTSIDE the upscale if-block so it's always available
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        h, w = img.shape[:2]
+    
         img_diag = math.sqrt(w**2 + h**2)
-        
-        # =============================================
-        # Phase 0: CTD (Comic Text Detector) — Manga-Trained Model ONLY
-        #
-        # NO downgrade to RapidOCR or OpenCV.
-        # CTD is a YOLO+DBNet hybrid trained on manga/comic data.
-        # If the model is unavailable, detection fails explicitly.
-        # =============================================
+    
         raw_boxes = []
 
         try:
@@ -1115,18 +1161,63 @@ async def detect_text_regions(
                         "processing_time_ms": 0, "error": "CTD model not found"}
 
             raw_boxes = detect_with_ctd(img)
-            logger.info(f"Phase 0: CTD => {len(raw_boxes)} text regions")
+            logger.info(f"Phase 0: CTD => {len(raw_boxes)} text regions (on {w}x{h} image)")
         except Exception as e:
             logger.error(f"CTD detection failed: {e}")
             return {"regions": [], "total_regions": 0,
                     "processing_time_ms": 0, "error": str(e)}
         
         # =============================================
+        # Phase 0.5: Scale box coordinates back to original image size
+        # If image was upscaled, CTD boxes are in upscaled coordinates.
+        # Convert them back to original image coordinates.
+        # =============================================
+        if scale_factor > 1.0:
+            scaled_boxes = []
+            for box in raw_boxes:
+                bx, by_, bw, bh = box
+                sx = int(bx / scale_factor)
+                sy = int(by_ / scale_factor)
+                sw = int(bw / scale_factor)
+                sh = int(bh / scale_factor)
+                # Clamp to original image bounds
+                sx = max(0, min(sx, orig_w - 1))
+                sy = max(0, min(sy, orig_h - 1))
+                sw = max(1, min(sw, orig_w - sx))
+                sh = max(1, min(sh, orig_h - sy))
+                scaled_boxes.append((sx, sy, sw, sh))
+            raw_boxes = scaled_boxes
+            logger.info(f"Phase 0.5: scaled {len(raw_boxes)} boxes back to original {orig_w}x{orig_h}")
+        
+        # =============================================
+        # Phase 0.5: Filter oversized CTD boxes
+        # CTD can detect large non-text regions (characters, backgrounds).
+        # Filter out boxes that exceed reasonable text region size.
+        # =============================================
+        img_area = orig_w * orig_h
+        max_text_area = img_area * 0.15  # No text region should exceed 15% of image
+        max_text_w = orig_w * 0.55
+        max_text_h = orig_h * 0.40
+        filtered_raw = []
+        for box in raw_boxes:
+            bx, by_, bw, bh = box
+            if bw * bh > max_text_area:
+                logger.info(f"Phase 0.5: DROPPED oversized region ({bx},{by_}) {bw}x{bh} area={bw*bh}>{max_text_area}")
+                continue
+            if bw > max_text_w or bh > max_text_h:
+                logger.info(f"Phase 0.5: DROPPED oversized dimension ({bx},{by_}) {bw}x{bh}")
+                continue
+            filtered_raw.append(box)
+        if len(filtered_raw) < len(raw_boxes):
+            logger.info(f"Phase 0.5: filtered {len(raw_boxes) - len(filtered_raw)} oversized boxes, kept {len(filtered_raw)}")
+        raw_boxes = filtered_raw
+        
+        # =============================================
         # Phase 1: Bubble detection — activate as supplement when CTD finds relatively few regions
         # Helps catch text inside large speech bubbles that CTD may have missed.
         # =============================================
         bubble_boxes = []
-        if len(raw_boxes) < 12:  # was < 5: 放宽阈值，更多场景下用气泡检测补充遗漏
+        if len(raw_boxes) < 15:  # lowered from 12: more aggressive bubble detection for dense manga pages
             bubble_boxes = _detect_bubble_outlines(gray, img)
             logger.info(f"Phase 1: detected {len(bubble_boxes)} bubble outlines (CTD had {len(raw_boxes)} regions)")
         else:
@@ -1223,6 +1314,70 @@ async def detect_text_regions(
                 final_scores = [1.0] * len(dedup_keep)
         
         # =============================================
+        # Phase 4.3: BOX SANITIZATION — fix/cull invalid boxes from merge
+        # CTD+merge can occasionally produce boxes with negative width/height
+        # or coordinates outside image bounds. Sanitize before verification.
+        # =============================================
+        sanitized_boxes = []
+        sanitized_scores = []
+        for i, box in enumerate(final_boxes):
+            bx, by_, bw, bh = box
+            # Fix negative dimensions by recomputing from start/end
+            if bw < 0:
+                bx = bx + bw  # Shift left since width goes backward
+                bw = -bw
+            if bh < 0:
+                by_ = by_ + bh  # Shift up since height goes backward
+                bh = -bh
+            # Clamp to image bounds
+            bx = max(0, min(bx, w - 1))
+            by_ = max(0, min(by_, h - 1))
+            bw = max(1, min(bw, w - bx))
+            bh = max(1, min(bh, h - by_))
+            if bw <= 0 or bh <= 0:
+                logger.info(f"Phase 4.3: DROPPED invalid box ({final_boxes[i][0]},{final_boxes[i][1]}) {final_boxes[i][2]}x{final_boxes[i][3]} → ({bx},{by_}) {bw}x{bh}")
+                continue
+            sanitized_boxes.append((bx, by_, bw, bh))
+            sanitized_scores.append(final_scores[i])
+        
+        dropped_count = len(final_boxes) - len(sanitized_boxes)
+        if dropped_count > 0:
+            logger.info(f"Phase 4.3: sanitized {dropped_count} invalid boxes, kept {len(sanitized_boxes)}")
+        final_boxes = sanitized_boxes
+        final_scores = sanitized_scores
+        
+        # =============================================
+        # Phase 4.4: FILTER EXTREME DIMENSIONS
+        # Remove 1x1, 1xN, Nx1 line artifacts from bubble detection
+        # These are manga borders/panel lines, not text regions
+        # =============================================
+        filtered_boxes = []
+        filtered_scores = []
+        for i, box in enumerate(final_boxes):
+            bx, by_, bw, bh = box
+            min_dim = min(bw, bh)
+            max_dim = max(bw, bh)
+            area = bw * bh
+            # Filter: 1px lines (borders/panel dividers), tiny dots
+            if min_dim <= 1 and max_dim > 10:
+                logger.info(f"Phase 4.4: DROPPED thin line ({bx},{by_}) {bw}x{bh}")
+                continue
+            if area < 25:
+                logger.info(f"Phase 4.4: DROPPED tiny region ({bx},{by_}) {bw}x{bh} area={area}")
+                continue
+            # Filter: extremely flat aspect ratios (borders)
+            if max_dim / max(min_dim, 1) > 15:
+                logger.info(f"Phase 4.4: DROPPED extreme aspect ({bx},{by_}) {bw}x{bh}")
+                continue
+            filtered_boxes.append(box)
+            filtered_scores.append(final_scores[i])
+        
+        if len(filtered_boxes) < len(final_boxes):
+            logger.info(f"Phase 4.4: filtered {len(final_boxes) - len(filtered_boxes)} extreme-dimension boxes, kept {len(filtered_boxes)}")
+        final_boxes = filtered_boxes
+        final_scores = filtered_scores
+        
+        # =============================================
         # Phase 4.5: TEXT CONTENT VERIFICATION (P0 CRITICAL FIX)
         # Filter out regions that don't contain actual text content.
         # This is the key fix for PRD 2.2.1 precision requirements.
@@ -1234,12 +1389,13 @@ async def detect_text_regions(
             
             # Skip edge artifacts (page numbers, signatures) per PRD 2.2.3
             if _is_edge_region(box, w, h, gray):
-                logger.debug(f"Phase 4.5: filtered edge region at ({bx},{by_}) {bw}x{bh}")
+                logger.info(f"Phase 4.5: filtered edge artifact at ({bx},{by_}) {bw}x{bh}")
                 continue
             
             # Verify text content
             roi = gray[by_:by_ + bh, bx:bx + bw] if bh > 0 and bw > 0 else None
             if roi is None or roi.size == 0:
+                logger.info(f"Phase 4.5: SKIPPED empty ROI at ({bx},{by_}) {bw}x{bh}")
                 continue
             
             box_label = f"({bx},{by_}) {bw}x{bh}"

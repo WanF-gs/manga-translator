@@ -73,7 +73,7 @@ class FileService:
 
     def __init__(self, storage_path: Optional[str] = None):
         self.storage_path = storage_path or os.path.join(
-            settings.UPLOAD_DIR if hasattr(settings, "UPLOAD_DIR") else "/tmp/manga-storage",
+            settings.UPLOAD_DIR if hasattr(settings, "UPLOAD_DIR") else "/mnt/c/Users/WanFi/Desktop/大三实训/demo_04/data/uploads",
             "uploads",
         )
         os.makedirs(self.storage_path, exist_ok=True)

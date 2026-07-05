@@ -25,6 +25,7 @@ router = APIRouter(prefix="/pages", tags=["Text Rendering"])
 class RegionRender(BaseModel):
     region_id: str
     translated_text: str
+    font_id: Optional[str] = None
     font_size: Optional[int] = None
     font_family: Optional[str] = None
     font_color: Optional[str] = None
