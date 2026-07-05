@@ -835,8 +835,15 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                       key={f.font_id || idx}
                       type="button"
                       onClick={() => {
-                        handleStyleChange('font_id', f.font_id || '');
-                        handleStyleChange('font_family', f.name || '');
+                        if (region) {
+                          onUpdate(region.region_id, {
+                            style_config: {
+                              ...region.style_config,
+                              font_id: f.font_id || '',
+                              font_family: f.name || '',
+                            } as StyleConfig,
+                          });
+                        }
                         message.success(`已应用推荐字体「${f.name}」`);
                       }}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs
@@ -880,22 +887,32 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
               showSearch
               value={style.font_id || style.font_family || 'builtin:default'}
               onChange={(val) => {
-                if (typeof val !== 'string') return;
+                if (typeof val !== 'string' || !region) return;
                 if (val.startsWith('builtin:')) {
                   // 离线兜底：存 font_family 字符串
-                  handleStyleChange('font_id', undefined);
                   const builtinFamily =
                     val === 'builtin:noto' ? 'Noto Sans SC' :
                     val === 'builtin:noto-jp' ? 'Noto Sans JP' :
                     val === 'builtin:wenkai' ? 'LXGW WenKai' :
                     val === 'builtin:narration' ? '内置漫画旁白体' :
                     '内置漫画对话体';
-                  handleStyleChange('font_family', builtinFamily);
+                  onUpdate(region.region_id, {
+                    style_config: {
+                      ...region.style_config,
+                      font_id: undefined,
+                      font_family: builtinFamily,
+                    } as StyleConfig,
+                  });
                 } else {
                   // 真实 font_id
                   const selected = (fontListData || []).find((f) => f.font_id === val);
-                  handleStyleChange('font_id', val);
-                  handleStyleChange('font_family', selected?.name || '');
+                  onUpdate(region.region_id, {
+                    style_config: {
+                      ...region.style_config,
+                      font_id: val,
+                      font_family: selected?.name || '',
+                    } as StyleConfig,
+                  });
                 }
               }}
               filterOption={(input, option) => {

@@ -51,6 +51,16 @@ export function pixelToPercentRegion(region: TextRegion, dims: PageDimensions | 
     ? (rawPts as [number, number][])
     : undefined;
 
+  // P0 FIX: 绝对不要重新生成 region_id！否则 detect→OCR→translate 的 ID 匹配全部失效
+  const existingId = region.region_id;
+  const safeRegionId = (existingId && existingId !== 'None' && String(existingId).length >= 10)
+    ? String(existingId)
+    : (region as any).id ?? (region as any)._id ?? null;
+  
+  if (!safeRegionId) {
+    console.warn('[coords] pixelToPercentRegion: region has no valid region_id, generating fallback', region);
+  }
+
   return {
     ...region,
     x: bx,
@@ -60,9 +70,7 @@ export function pixelToPercentRegion(region: TextRegion, dims: PageDimensions | 
     points,
     boundary_mode: (region as any).boundary_mode
       ?? (points ? 'polygon' : 'rect'),
-    region_id: (region.region_id && region.region_id !== 'None')
-      ? String(region.region_id)
-      : `region-${crypto.randomUUID()}`,
+    region_id: safeRegionId || `region-${crypto.randomUUID()}`,
     style_config: region.style_config || { ...DEFAULT_STYLE },
   };
 }

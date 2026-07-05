@@ -97,12 +97,25 @@
 /* ===== 组件级样式 ===== */
 
 @layer components {
-  /* 增强玻璃态卡片 */
+  /* 增强玻璃态卡片 - 更精致的视觉效果 */
   .glass-card {
-    @apply bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl
-           border border-slate-200/50 dark:border-slate-700/40
+    @apply bg-white/90 dark:bg-slate-800/70 backdrop-blur-2xl
+           border border-slate-200/60 dark:border-slate-700/50
            rounded-2xl shadow-card;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
   }
 
   .glass-card-hover {
@@ -110,8 +123,12 @@
   }
 
   .glass-card-hover:hover {
-    @apply shadow-glow border-primary-300/60 dark:border-primary-600/40;
-    transform: translateY(-3px);
+    @apply shadow-card-hover border-primary-300/50 dark:border-primary-600/40;
+    transform: translateY(-4px);
+  }
+
+  .glass-card-hover:hover::before {
+    opacity: 1;
   }
 
   /* 带渐变边框的卡片 */
@@ -166,78 +183,149 @@
            border border-emerald-200/60 dark:border-emerald-700/40;
   }
 
-  /* 按钮变体 */
+  /* 按钮变体 - 更现代的设计 */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
-           bg-gradient-to-br from-primary-500 to-primary-600
-           hover:from-primary-600 hover:to-primary-700
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           bg-gradient-to-r from-primary-500 via-blue-500 to-primary-600
+           hover:from-primary-600 hover:via-blue-600 hover:to-primary-700
            active:from-primary-700 active:to-primary-800
            text-white font-semibold rounded-xl
-           shadow-sm shadow-primary-500/20 hover:shadow-md hover:shadow-primary-500/25
-           transition-all duration-200 ease-out
+           shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30
+           transition-all duration-300 ease-out
            disabled:opacity-50 disabled:cursor-not-allowed
-           disabled:shadow-none;
+           disabled:shadow-none
+           relative overflow-hidden;
+    background-size: 200% 100%;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
   }
   .btn-primary:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    background-position: 100% 0;
+  }
+  .btn-primary:hover::before {
+    opacity: 1;
   }
   .btn-primary:active {
     transform: translateY(0);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
-           bg-white dark:bg-slate-800
-           hover:bg-slate-50 dark:hover:bg-slate-700
-           text-slate-700 dark:text-slate-300 font-semibold rounded-xl
-           border border-slate-200 dark:border-slate-700
-           transition-all duration-200 ease-out
-           shadow-sm
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+         bg-white dark:bg-slate-800
+         hover:bg-slate-50 dark:hover:bg-slate-700/80
+         text-slate-700 dark:text-slate-300 font-semibold rounded-xl
+         border border-slate-200 dark:border-slate-700
+         transition-all duration-300 ease-out
+         shadow-sm hover:shadow-md
+         disabled:opacity-50 disabled:cursor-not-allowed
+         relative overflow-hidden;
+    background-size: 200% 100%;
+  }
+  .btn-secondary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
   }
   .btn-secondary:hover {
-    @apply border-slate-300 dark:border-slate-600 shadow;
-    transform: translateY(-1px);
+    @apply border-primary-300 dark:border-primary-600;
+    transform: translateY(-2px);
+    background-position: 100% 0;
+  }
+  .btn-secondary:hover::before {
+    opacity: 1;
+  }
+  .btn-secondary:active {
+    transform: translateY(0);
+    @apply shadow-sm;
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
            hover:bg-slate-100 dark:hover:bg-slate-800/80
            text-slate-600 dark:text-slate-400 font-semibold rounded-xl
-           transition-all duration-200 ease-out;
+           transition-all duration-300 ease-out
+           relative;
   }
   .btn-ghost:hover {
-    @apply text-slate-900 dark:text-slate-200;
+    @apply text-primary-600 dark:text-primary-400;
+  }
+  .btn-ghost::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, theme('colors.primary.500'), theme('colors.accent.500'));
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+    border-radius: 1px;
+  }
+  .btn-ghost:hover::after {
+    width: 60%;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
-           bg-gradient-to-br from-red-500 to-red-600
-           hover:from-red-600 hover:to-red-700
-           active:from-red-700 active:to-red-800
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           bg-gradient-to-r from-red-500 to-rose-600
+           hover:from-red-600 hover:to-rose-700
+           active:from-red-700 active:to-rose-800
            text-white font-semibold rounded-xl
-           shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25
-           transition-all duration-200 ease-out;
+           shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30
+           transition-all duration-300 ease-out
+           disabled:opacity-50 disabled:cursor-not-allowed
+           relative overflow-hidden;
+    background-size: 200% 100%;
+  }
+  .btn-danger::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
   }
   .btn-danger:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    background-position: 100% 0;
+  }
+  .btn-danger:hover::before {
+    opacity: 1;
   }
   .btn-danger:active {
     transform: translateY(0);
   }
 
-  /* 输入框 */
+  /* 输入框 - 更精致的样式 */
   .input-field {
-    @apply w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80
-           border border-slate-200 dark:border-slate-700
+    @apply w-full px-4 py-2.5 bg-white dark:bg-slate-800/90
+           border-2 border-slate-200 dark:border-slate-700
            rounded-xl text-slate-900 dark:text-slate-100 text-sm
            placeholder:text-slate-400 dark:placeholder:text-slate-500
-           focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400
-           dark:focus:ring-primary-400/20 dark:focus:border-primary-500
-           transition-all duration-200 ease-out;
+           focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-400
+           dark:focus:ring-primary-400/10 dark:focus:border-primary-500
+           transition-all duration-300 ease-out
+           shadow-inner shadow-slate-200/50 dark:shadow-slate-900/50;
   }
   .input-field:hover {
     @apply border-slate-300 dark:border-slate-600;
+    box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.04), 0 0 0 1px rgba(59,130,246,0.05);
+  }
+  .input-field:focus {
+    box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.02), 0 0 0 4px rgba(59,130,246,0.15);
   }
 
   /* 标签 */
@@ -307,6 +395,39 @@
     background-size: 200% 200%;
     animation: gradientShift 8s ease infinite;
   }
+
+  /* 玻璃态强化效果 */
+  .glass-strong {
+    @apply bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl;
+  }
+
+  /* 悬浮动画 */
+  .float-subtle {
+    animation: floatSubtle 6s ease-in-out infinite;
+  }
+
+  /* 脉冲发光效果 */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  /* 边框渐变动画 */
+  .border-gradient {
+    position: relative;
+  }
+  .border-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(135deg, theme('colors.primary.500'), theme('colors.accent.500'), theme('colors.primary.500'));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: borderRotate 3s linear infinite;
+    background-size: 200% 200%;
+  }
 }
 
 /* ===== 动画 ===== */
@@ -319,6 +440,38 @@
 @keyframes shimmerFast {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* 微妙悬浮动画 */
+@keyframes floatSubtle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* 脉冲发光动画 */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.3); }
+}
+
+/* 边框渐变动画 */
+@keyframes borderRotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 数字递增动画 */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 成功标记动画 */
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* 增强骨架屏 - 更流畅的 shimmer 效果 */
@@ -416,6 +569,49 @@
 
 .animate-pop-in {
   animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 淡入上升动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 缩放弹出动画（带弹性） */
+@keyframes scaleSpring {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-spring {
+  animation: scaleSpring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* 滑入动画 */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ===== P2 A11y: Reduced motion (WCAG 2.1 §2.3.3) ===== */

@@ -3,7 +3,7 @@
  * D2 fix: Extracted right panel rendering from page.tsx.
  * Contains all 4 tab panels: properties, OCR, styles, export.
  */
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useCallback } from 'react';
 import { Spin } from 'antd';
 import clsx from 'clsx';
 import type { RightPanelMode } from '@/hooks/useEditorPageLogic';
@@ -28,6 +28,8 @@ interface EditorRightPanelProps {
   sourceLang: string | undefined;
   currentPageData: any;
   onUpdateRegion: (rid: string, data: Partial<TextRegion>) => void;
+  /** 样式变更后触发重新渲染（仅当页面已渲染时） */
+  onReRender?: () => Promise<void>;
   onDeleteRegion: (id: string) => void;
   onToggleLock: (id: string) => void;
   onApplyAll: (opts: any) => void;
@@ -48,14 +50,23 @@ export const EditorRightPanel: React.FC<EditorRightPanelProps> = ({
   mode, open, onModeChange,
   selectedRegion, regions, currentPageId, projectId, totalPages,
   sourceLang, currentPageData,
-  onUpdateRegion, onDeleteRegion, onToggleLock, onApplyAll,
+  onUpdateRegion, onReRender, onDeleteRegion, onToggleLock, onApplyAll,
   onApplyStyle, onBatchApplyStyle,
   onConvertToPolygon, onConvertToRect, onSplitRegion,
 }) => {
+  // P1 FIX: PropertyPanel 的 onUpdate 包装——样式变更自动触发重渲染
+  const handlePropertyUpdate = useCallback((rid: string, data: any) => {
+    onUpdateRegion(rid, data as Partial<TextRegion>);
+    // 仅当变更是 style_config 且页面已渲染时才触发重渲染
+    if (data?.style_config && onReRender) {
+      onReRender();
+    }
+  }, [onUpdateRegion, onReRender]);
+
   return (
-    <div className="w-72 flex-shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+    <div className="w-72 flex-shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col overflow-hidden">
       {/* Tab Bar */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         {TABS.map(tab => (
           <button key={tab}
             onClick={() => onModeChange(tab, !(mode === tab && open))}
@@ -69,18 +80,19 @@ export const EditorRightPanel: React.FC<EditorRightPanelProps> = ({
         ))}
       </div>
 
-      {/* Panels */}
+      {/* Panels — 可滚动区域 */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
       <FallbackSuspense show={open && mode === 'properties'}>
         <PropertyPanel
           region={selectedRegion}
-          onUpdate={(rid, data) => onUpdateRegion(rid, data as Partial<TextRegion>)}
+          onUpdate={handlePropertyUpdate}
           onDelete={onDeleteRegion}
           onToggleLock={onToggleLock}
           onApplyAll={onApplyAll}
           onConvertToPolygon={onConvertToPolygon}
           onConvertToRect={onConvertToRect}
           onSplitRegion={onSplitRegion}
-          onApplyPreset={(rid, style) => onUpdateRegion(rid, { style_config: style } as Partial<TextRegion>)}
+          onApplyPreset={(rid, style) => onApplyStyle(rid, style)}
           onClose={() => onModeChange(mode, false)}
         />
       </FallbackSuspense>
@@ -116,10 +128,9 @@ export const EditorRightPanel: React.FC<EditorRightPanelProps> = ({
       </FallbackSuspense>
 
       <FallbackSuspense show={open && mode === 'collaboration'}>
-        <div className="p-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 120px)' }}>
-          <CollaborationPanel projectId={projectId || ''} pageId={currentPageId || undefined} />
-        </div>
+        <CollaborationPanel projectId={projectId || ''} pageId={currentPageId || undefined} />
       </FallbackSuspense>
+      </div>{/* /scrollable panels */}
     </div>
   );
 };

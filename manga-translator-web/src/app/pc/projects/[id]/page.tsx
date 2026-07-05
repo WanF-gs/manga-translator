@@ -109,14 +109,26 @@ function EditorPage() {
         onExport={logic.handleExport}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        {logic.leftPanelOpen ? (
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Panel — mobile: absolute overlay; desktop: inline flex */}
+        {logic.leftPanelOpen && logic.isMobile && (
+          <>
+            <div className="absolute inset-0 bg-black/40 z-20" onClick={() => logic.setLeftPanelOpen(false)} aria-hidden />
+            <div className="absolute left-0 top-0 bottom-0 z-30 animate-slide-in-left">
+              <Sidebar chapters={logic.chapters} currentPageId={logic.currentPageId}
+                onSelectPage={logic.selectPage}
+                onTogglePanel={() => logic.setLeftPanelOpen(false)}
+              />
+            </div>
+          </>
+        )}
+        {logic.leftPanelOpen && !logic.isMobile && (
           <Sidebar chapters={logic.chapters} currentPageId={logic.currentPageId}
             onSelectPage={logic.selectPage}
             onTogglePanel={() => logic.setLeftPanelOpen(false)}
           />
-        ) : (
+        )}
+        {!logic.leftPanelOpen && (
           <button onClick={() => logic.setLeftPanelOpen(true)}
             className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-r-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             <PanelLeft size={16} className="text-slate-400" />
@@ -148,6 +160,9 @@ function EditorPage() {
                     onScaleChange={logic.setCanvasScale}
                     onSelectRegion={logic.handleCanvasSelectRegion}
                     onUpdateRegion={logic.handleCanvasUpdateRegion}
+                    isRenderedView={
+                      logic.currentPageData?.status === 'rendered' || logic.currentPageData?.status === 'reviewed'
+                    }
                   />
                 </div>
               </div>
@@ -173,6 +188,9 @@ function EditorPage() {
                     onScaleChange={logic.setCanvasScale}
                     onSelectRegion={logic.handleCanvasSelectRegion}
                     onUpdateRegion={logic.handleCanvasUpdateRegion}
+                    isRenderedView={
+                      logic.currentPageData?.status === 'rendered' || logic.currentPageData?.status === 'reviewed'
+                    }
                   />
                 </div>
               </div>
@@ -192,6 +210,10 @@ function EditorPage() {
               onScaleChange={logic.setCanvasScale}
               onSelectRegion={logic.handleCanvasSelectRegion}
               onUpdateRegion={logic.handleCanvasUpdateRegion}
+              isRenderedView={
+                logic.displayMode !== 'original' &&
+                (logic.currentPageData?.status === 'rendered' || logic.currentPageData?.status === 'reviewed')
+              }
             />
           )}
           <StatusBar
@@ -214,30 +236,70 @@ function EditorPage() {
           />
         </div>
 
-        {/* Right Panel (D2: extracted component) */}
-        <EditorRightPanel
-          mode={logic.rightPanelMode}
-          open={logic.rightPanelOpen}
-          onModeChange={(m, o) => { logic.setRightPanelMode(m); logic.setRightPanelOpen(o); }}
-          selectedRegion={logic.selectedRegion as EditorRegion | null}
-          regions={logic.regions as EditorRegion[]}
-          currentPageId={logic.currentPageId}
-          projectId={projectId}
-          totalPages={logic.totalPages}
-          sourceLang={(logic.project as any)?.source_lang}
-          currentPageData={logic.currentPageData}
-          onUpdateRegion={logic.handleUpdateRegion}
-          onDeleteRegion={logic.regionOps.handleDeleteRegion}
-          onToggleLock={logic.regionOps.handleToggleLock}
-          onApplyAll={logic.regionOps.handleApplyAll}
-          onApplyStyle={logic.regionOps.handleApplyStyle}
-          onBatchApplyStyle={logic.regionOps.handleBatchApplyStyle}
-          onConvertToPolygon={logic.regionOps.handleConvertToPolygon}
-          onConvertToRect={logic.regionOps.handleConvertToRect}
-          onSplitRegion={logic.regionOps.handleSplitRegion}
-        />
+        {/* Right Panel — mobile: absolute overlay; desktop: inline flex */}
+        {logic.rightPanelOpen && logic.isMobile && (
+          <>
+            <div className="absolute inset-0 bg-black/40 z-20" onClick={() => logic.setRightPanelOpen(false)} aria-hidden />
+            <div className="absolute right-0 top-0 bottom-0 z-30 w-72 max-w-[85vw] animate-slide-in-right">
+              {/* Mobile close button at top-left of the overlay panel */}
+              <button
+                onClick={() => logic.setRightPanelOpen(false)}
+                className="absolute top-2 left-2 z-20 p-1 rounded bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                title="关闭面板"
+              >
+                <PanelLeft size={14} className="text-slate-600 dark:text-slate-300" />
+              </button>
+              <EditorRightPanel
+                mode={logic.rightPanelMode}
+                open={logic.rightPanelOpen}
+                onModeChange={(m, o) => { logic.setRightPanelMode(m); logic.setRightPanelOpen(o); }}
+                selectedRegion={logic.selectedRegion as EditorRegion | null}
+                regions={logic.regions as EditorRegion[]}
+                currentPageId={logic.currentPageId}
+                projectId={projectId}
+                totalPages={logic.totalPages}
+                sourceLang={(logic.project as any)?.source_lang}
+                currentPageData={logic.currentPageData}
+                onUpdateRegion={logic.handleUpdateRegion}
+                onDeleteRegion={logic.regionOps.handleDeleteRegion}
+                onToggleLock={logic.regionOps.handleToggleLock}
+                onApplyAll={logic.regionOps.handleApplyAll}
+                onApplyStyle={logic.regionOps.handleApplyStyle}
+                onBatchApplyStyle={logic.regionOps.handleBatchApplyStyle}
+                onConvertToPolygon={logic.regionOps.handleConvertToPolygon}
+                onConvertToRect={logic.regionOps.handleConvertToRect}
+                onSplitRegion={logic.regionOps.handleSplitRegion}
+                onReRender={logic.reRenderPage}
+              />
+            </div>
+          </>
+        )}
+        {logic.rightPanelOpen && !logic.isMobile && (
+          <EditorRightPanel
+            mode={logic.rightPanelMode}
+            open={logic.rightPanelOpen}
+            onModeChange={(m, o) => { logic.setRightPanelMode(m); logic.setRightPanelOpen(o); }}
+            selectedRegion={logic.selectedRegion as EditorRegion | null}
+            regions={logic.regions as EditorRegion[]}
+            currentPageId={logic.currentPageId}
+            projectId={projectId}
+            totalPages={logic.totalPages}
+            sourceLang={(logic.project as any)?.source_lang}
+            currentPageData={logic.currentPageData}
+            onUpdateRegion={logic.handleUpdateRegion}
+            onDeleteRegion={logic.regionOps.handleDeleteRegion}
+            onToggleLock={logic.regionOps.handleToggleLock}
+            onApplyAll={logic.regionOps.handleApplyAll}
+            onApplyStyle={logic.regionOps.handleApplyStyle}
+            onBatchApplyStyle={logic.regionOps.handleBatchApplyStyle}
+            onConvertToPolygon={logic.regionOps.handleConvertToPolygon}
+            onConvertToRect={logic.regionOps.handleConvertToRect}
+            onSplitRegion={logic.regionOps.handleSplitRegion}
+            onReRender={logic.reRenderPage}
+          />
+        )}
 
-        {/* Right Panel Toggle */}
+        {/* Right Panel Toggle (always visible when closed, both mobile & desktop) */}
         {!logic.rightPanelOpen && (
           <button onClick={() => logic.setRightPanelOpen(true)}
             className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-l-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">

@@ -13,12 +13,30 @@ import {
   ArrowLeft,
   RefreshCw,
   Image,
+  ArrowRightLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { projectApi } from '@/services/project';
 import { pageApi } from '@/services/page';
 import { exportApi } from '@/services/export';
+import type { SourceLang } from '@/types';
+
+// P0 移动端核心链路：可选的源语言/目标语言
+const MOBILE_SOURCE_LANGS: { value: SourceLang; label: string; flag: string }[] = [
+  { value: 'ja', label: '日文', flag: '🇯🇵' },
+  { value: 'en', label: '英文', flag: '🇺🇸' },
+  { value: 'ko', label: '韩文', flag: '🇰🇷' },
+  { value: 'zh', label: '中文', flag: '🇨🇳' },
+];
+
+const MOBILE_TARGET_LANGS: { value: string; label: string; flag: string }[] = [
+  { value: 'zh-CN', label: '简体中文', flag: '🇨🇳' },
+  { value: 'zh-TW', label: '繁體中文', flag: '🇭🇰' },
+  { value: 'en', label: 'English', flag: '🇺🇸' },
+  { value: 'ja', label: '日本語', flag: '🇯🇵' },
+  { value: 'ko', label: '한국어', flag: '🇰🇷' },
+];
 
 type ProcessStep = 'upload' | 'detect' | 'ocr' | 'translate' | 'render' | 'done';
 const STEP_LABELS: Record<ProcessStep, string> = {
@@ -36,6 +54,11 @@ export default function QuickTranslatePage() {
   const [currentStep, setCurrentStep] = useState<ProcessStep>('upload');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [translateError, setTranslateError] = useState<string | null>(null);
+
+  // P0 核心链路：上传前可选源语言和目标语言
+  const [sourceLang, setSourceLang] = useState<SourceLang>('ja');
+  const [targetLang, setTargetLang] = useState('zh-CN');
+  const [langPanelOpen, setLangPanelOpen] = useState(false);
 
   const progressPercent: Record<ProcessStep, number> = {
     upload: 20,
@@ -71,7 +94,7 @@ export default function QuickTranslatePage() {
         // 创建临时快速翻译项目
         const projectRes = await projectApi.create({
           name: `快速翻译 ${new Date().toLocaleTimeString()}`,
-          source_lang: 'ja',
+          source_lang: sourceLang,
         });
         const projectId = (projectRes.data as any).data?.project_id || (projectRes.data as any).project_id;
 
@@ -102,9 +125,9 @@ export default function QuickTranslatePage() {
       // 阶段2：AI 处理流程（如果后端可用）
       if (uploadedPageId) {
         const stepFns: { key: ProcessStep; label: string; fn: () => Promise<any> }[] = [
-          { key: 'detect', label: '文字检测', fn: () => pageApi.detectRegions(uploadedPageId!) },
-          { key: 'ocr', label: 'OCR识别', fn: () => pageApi.runOCR(uploadedPageId!, 'ja') },
-          { key: 'translate', label: '智能翻译', fn: () => pageApi.translate(uploadedPageId!, { target_lang: 'zh-CN' }) },
+          { key: 'detect', label: '文字检测', fn: () => pageApi.detectRegions(uploadedPageId!, undefined, sourceLang) },
+          { key: 'ocr', label: 'OCR识别', fn: () => pageApi.runOCR(uploadedPageId!, sourceLang) },
+          { key: 'translate', label: '智能翻译', fn: () => pageApi.translate(uploadedPageId!, { target_lang: targetLang }) },
           { key: 'render', label: '文字回填', fn: () => pageApi.render(uploadedPageId!) },
         ];
 
@@ -148,7 +171,7 @@ export default function QuickTranslatePage() {
     } finally {
       setProcessing(false);
     }
-  }, [fileList]);
+  }, [fileList, sourceLang, targetLang]);
 
   const resetAll = () => {
     setFileList([]);
@@ -192,6 +215,50 @@ export default function QuickTranslatePage() {
                 </div>
               )}
             </Upload>
+
+            {/* P0 核心链路：源语言/目标语言选择 */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  选择语言
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {/* 源语言 */}
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">源语言</label>
+                  <select
+                    value={sourceLang}
+                    onChange={(e) => setSourceLang(e.target.value as SourceLang)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
+                  >
+                    {MOBILE_SOURCE_LANGS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.flag} {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* 目标语言 */}
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">目标语言</label>
+                  <select
+                    value={targetLang}
+                    onChange={(e) => setTargetLang(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
+                  >
+                    {MOBILE_TARGET_LANGS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.flag} {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-400 text-center">
+                {MOBILE_SOURCE_LANGS.find(l => l.value === sourceLang)?.label} → {MOBILE_TARGET_LANGS.find(l => l.value === targetLang)?.label}
+              </p>
+            </div>
 
             <Button
               type="primary"

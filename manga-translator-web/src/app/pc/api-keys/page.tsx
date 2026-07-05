@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Tag, App, Popconfirm, Space, Card, Typography, Alert, Empty } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Modal, Form, Input, InputNumber, App, Popconfirm, Button, Space } from 'antd';
+import { AlertCircle } from 'lucide-react';
 import { Key, Plus, Trash2, Copy, Shield, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiKeyApi, type ApiKeyData } from '@/services/api-keys';
-
-const { Text, Paragraph } = Typography;
+import CodeBlock from '@/components/CodeBlock';
 
 export default function ApiKeysPage() {
   const { message } = App.useApp();
@@ -70,164 +69,235 @@ export default function ApiKeysPage() {
 
   const formatTime = (d?: string) => d ? new Date(d).toLocaleString('zh-CN') : '从未使用';
 
-  const columns = useMemo<ColumnsType<ApiKeyData>>(() => [
-    {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string, record) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-            <Key size={18} className="text-amber-600 dark:text-amber-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white">{name}</p>
-            <code className="text-xs text-slate-400">{record.key_prefix}...</code>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'is_active',
-      key: 'is_active',
-      width: 80,
-      render: (active: boolean) => (
-        <Tag color={active ? 'green' : 'default'}>{active ? '启用' : '禁用'}</Tag>
-      ),
-    },
-    {
-      title: '速率限制',
-      dataIndex: 'rate_limit',
-      key: 'rate_limit',
-      width: 100,
-      render: (v: number) => `${v}/min`,
-    },
-    {
-      title: '累计调用',
-      dataIndex: 'total_calls',
-      key: 'total_calls',
-      width: 90,
-      render: (v: number) => v?.toLocaleString() || '0',
-    },
-    {
-      title: '最后使用',
-      dataIndex: 'last_used_at',
-      key: 'last_used_at',
-      width: 150,
-      render: (d: string) => (
-        <span className="text-xs text-slate-400">{formatTime(d)}</span>
-      ),
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 80,
-      render: (_: unknown, record: ApiKeyData) => (
-        <Popconfirm
-          title="确认禁用该 API Key？禁用后将拒绝所有请求"
-          onConfirm={() => deleteMutation.mutate(record.api_key_id)}
-        >
-          <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
-        </Popconfirm>
-      ),
-    },
-  ], [deleteMutation.mutate]);
-
   return (
     <div className="h-full overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-              <Key size={22} className="text-amber-600 dark:text-amber-400" />
+      {/* 顶部操作栏 - 使用玻璃态效果 */}
+      <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
+        <div className="max-w-5xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 dark:shadow-amber-500/10">
+                  <Key size={22} className="text-white" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 animate-pulse" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  API 密钥管理
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  创建和管理 API 密钥，对接外部工具和自动化工作流
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">API 密钥管理</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                创建和管理 API 密钥，对接外部工具和自动化工作流
-              </p>
-            </div>
+            <button
+              onClick={() => setCreateOpen(true)}
+              disabled={isLoading}
+              className="btn-primary text-sm py-2.5 px-5"
+            >
+              <Plus size={16} />
+              创建 API Key
+            </button>
           </div>
-          <Button
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setCreateOpen(true)}
-            loading={isLoading}
-            disabled={!isError && !keys?.length ? false : false}
-          >
-            创建 API Key
-          </Button>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-6">
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* 后端不可用提示 */}
         {isError && (
-          <Alert
-            type="warning"
-            showIcon
-            message="后端服务未连接"
-            description={(queryError as any)?.message || '无法连接到服务器，请确认后端服务已启动。创建和管理 API Key 功能暂时不可用。'}
-            className="mb-4"
-          />
+          <div className="glass-card p-4 mb-6 border-amber-200/50 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/10">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex-shrink-0">
+                <AlertCircle size={18} className="text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-1">后端服务未连接</h4>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  {(queryError as any)?.message || '无法连接到服务器，请确认后端服务已启动。创建和管理 API Key 功能暂时不可用。'}
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* API 使用指南 */}
-        <Card className="mb-6" title={
-          <span className="flex items-center gap-2"><Shield size={16} className="text-primary-500" />API 使用指南</span>
-        }>
-          <Paragraph className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-            在请求头中携带 <Text code>X-API-Key: msk_xxx</Text> 或 <Text code>Authorization: Bearer msk_xxx</Text> 进行鉴权。
-            基础 URL：<Text code>http://localhost:8080/api/v1/external</Text>（部署后替换为实际域名）。
-          </Paragraph>
-
-          <div className="space-y-4">
-            {[
-              {
-                method: 'POST', path: '/detect', name: '文本区域检测',
-                desc: '传入图片 URL 或 Base64，返回文字区域坐标与类型。需要 detect 权限。',
-                body: `{\n  "image_url": "https://example.com/page.png",\n  "language": "ja"\n}`,
-              },
-              {
-                method: 'POST', path: '/ocr', name: 'OCR 文字识别',
-                desc: '传入图片 URL + 区域坐标列表，返回每个区域识别出的文字与置信度。需要 ocr 权限。',
-                body: `{\n  "image_url": "https://example.com/page.png",\n  "regions": [{"bbox": [10, 20, 200, 60], "type": "speech"}],\n  "lang": "ja"\n}`,
-              },
-              {
-                method: 'POST', path: '/translate', name: '文本翻译',
-                desc: '传入待翻译文本 + 源语言/目标语言，返回译文。需要 translate 权限。',
-                body: `{\n  "text": "こんにちは世界",\n  "source_lang": "ja",\n  "target_lang": "zh-CN"\n}`,
-              },
-            ].map((ep) => (
-              <div key={ep.path} className="border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Tag color="blue">{ep.method}</Tag>
-                  <Text code className="text-xs">{`/api/v1/external${ep.path}`}</Text>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{ep.name}</span>
-                </div>
-                <Paragraph className="!text-xs text-slate-500 dark:text-slate-400 !mb-2">{ep.desc}</Paragraph>
-                <pre className="text-xs bg-slate-950 text-green-400 p-2 rounded overflow-x-auto !mb-0">{`curl -X ${ep.method} http://localhost:8080/api/v1/external${ep.path} \\
-  -H "X-API-Key: msk_YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '${ep.body}'`}</pre>
+        {/* API 使用指南 - 使用玻璃态卡片 */}
+        <div className="glass-card overflow-hidden">
+          <div className="p-5 border-b border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Shield size={20} className="text-white" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  API 使用指南
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  快速接入外部 API
+                </p>
+              </div>
+            </div>
           </div>
 
-          <Paragraph className="text-xs text-slate-400 mt-3 !mb-0">
-            统一响应格式：<Text code>{'{"code":0,"message":"success","data":{...}}'}</Text>
-          </Paragraph>
-        </Card>
+          <div className="p-5 space-y-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              在请求头中携带 <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs">X-API-Key: msk_xxx</code> 或 <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs">Authorization: Bearer msk_xxx</code> 进行鉴权。
+              基础 URL：<code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs">http://localhost:8080/api/v1/external</code>（部署后替换为实际域名）。
+            </p>
 
-        <Table
-          columns={columns}
-          dataSource={isError ? [] : (Array.isArray(keys) ? keys : [])}
-          rowKey="api_key_id"
-          loading={isLoading}
-          pagination={false}
-          locale={{ emptyText: isError ? `加载失败: ${(queryError as any)?.message || '后端不可用'}` : '暂无 API Key，点击右上角创建' }}
-        />
+            <div className="space-y-3">
+              {[
+                {
+                  method: 'POST', path: '/detect', name: '文本区域检测',
+                  desc: '传入图片 URL 或 Base64，返回文字区域坐标与类型。需要 detect 权限。',
+                  body: `{\n  "image_url": "https://example.com/page.png",\n  "language": "ja"\n}`,
+                },
+                {
+                  method: 'POST', path: '/ocr', name: 'OCR 文字识别',
+                  desc: '传入图片 URL + 区域坐标列表，返回每个区域识别出的文字与置信度。需要 ocr 权限。',
+                  body: `{\n  "image_url": "https://example.com/page.png",\n  "regions": [{"bbox": [10, 20, 200, 60], "type": "speech"}],\n  "lang": "ja"\n}`,
+                },
+                {
+                  method: 'POST', path: '/translate', name: '文本翻译',
+                  desc: '传入待翻译文本 + 源语言/目标语言，返回译文。需要 translate 权限。',
+                  body: `{\n  "text": "こんにちは世界",\n  "source_lang": "ja",\n  "target_lang": "zh-CN"\n}`,
+                },
+              ].map((ep) => (
+                <div key={ep.path} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 hover:border-primary-300 dark:hover:border-primary-600 transition-colors duration-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold">{ep.method}</span>
+                    <code className="text-xs text-slate-600 dark:text-slate-300">{`/api/v1/external${ep.path}`}</code>
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{ep.name}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{ep.desc}</p>
+                  <CodeBlock language="bash" title={`${ep.method} ${ep.path}`}>
+{`curl -X ${ep.method} http://localhost:8080/api/v1/external${ep.path} \\\n  -H "X-API-Key: msk_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${ep.body}'`}
+                  </CodeBlock>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 border border-blue-200/50 dark:border-blue-800/30">
+              <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
+                统一响应格式
+              </p>
+              <CodeBlock language="json" title="Response Format">
+{`{
+  "code": 0,
+  "message": "success",
+  "data": {
+    // 业务数据
+  }
+}`}
+              </CodeBlock>
+            </div>
+          </div>
+        </div>
+
+        {/* API Key 列表 - 使用自定义样式 */}
+        <div className="glass-card overflow-hidden">
+          <div className="p-5 border-b border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Key size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    密钥列表
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {Array.isArray(keys) ? `共 ${keys.length} 个密钥` : '加载中...'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5">
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-4">
+                    <div className="skeleton w-10 h-10 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <div className="skeleton h-4 w-1/3 rounded-lg" />
+                      <div className="skeleton h-3 w-1/2 rounded-lg" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : !Array.isArray(keys) || keys.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <Key size={28} className="text-slate-400 dark:text-slate-500" />
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                  {isError ? `加载失败: ${(queryError as any)?.message || '后端不可用'}` : '暂无 API Key，点击右上角创建'}
+                </p>
+                {!isError && (
+                  <button
+                    onClick={() => setCreateOpen(true)}
+                    className="btn-primary inline-flex px-5 py-2.5 text-sm"
+                  >
+                    <Plus size={16} />
+                    创建 API Key
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {keys.map((key: ApiKeyData, index: number) => (
+                  <div
+                    key={key.api_key_id}
+                    className="group flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all duration-300"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                        <Key size={18} className="text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                            {key.name}
+                          </h4>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            key.is_active
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          }`}>
+                            {key.is_active ? '启用' : '禁用'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                          <code className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-xs">{key.key_prefix}...</code>
+                          <span>·</span>
+                          <span>{key.rate_limit}/min</span>
+                          <span>·</span>
+                          <span>调用 {key.total_calls?.toLocaleString() || 0} 次</span>
+                          <span>·</span>
+                          <span>最后使用 {formatTime(key.last_used_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <Popconfirm
+                        title="确认禁用该 API Key？禁用后将拒绝所有请求"
+                        onConfirm={() => deleteMutation.mutate(key.api_key_id)}
+                      >
+                        <button className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                          <Trash2 size={16} />
+                        </button>
+                      </Popconfirm>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 创建弹窗 */}
@@ -289,11 +359,14 @@ export default function ApiKeysPage() {
               />
             </div>
           </div>
-          <div className="text-xs text-slate-500 space-y-1">
-            <p>使用方式：</p>
-            <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded">
-              {`curl -H "Authorization: Bearer ${newKey?.slice(0, 10) || 'msk_'}..." -H "Content-Type: application/json" -X GET "http://localhost:8080/api/v1/projects"`}
-            </code>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary-500" />
+              使用方式
+            </p>
+            <CodeBlock language="bash" title="cURL Example">
+{`curl -H "Authorization: Bearer ${newKey || 'msk_YOUR_KEY'}" \\\n  -H "Content-Type: application/json" \\\n  -X GET "http://localhost:8080/api/v1/projects"`}
+            </CodeBlock>
           </div>
         </div>
       </Modal>

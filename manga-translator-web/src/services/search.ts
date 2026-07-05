@@ -109,9 +109,9 @@ export const learnApi = {
     request.post<ApiResponse<{ vocab_id: string; review_count: number; mastery_level: number; next_review_at: string }>>(`/learn/review/${vocabId}`),
 
   /** 获取复习会话 */
-  getReview: (language: string, count?: number) =>
+  getReview: (language?: string, count?: number) =>
     request.get<ApiResponse<ReviewSession>>('/learn/review', {
-      params: { language, count: count ?? 10 },
+      params: language ? { language, count: count ?? 10 } : { count: count ?? 10 },
     }),
 
   /** 获取成就列表 */

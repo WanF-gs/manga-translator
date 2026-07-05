@@ -9,7 +9,6 @@ import {
   Plus,
   Search,
   Upload,
-  MoreVertical,
   Star,
   Trash2,
   Clock,
@@ -53,24 +52,24 @@ function formatTime(dateStr: string): string {
 
 // ===== 语言标签 =====
 const LANG_LABELS: Record<string, string> = {
-  ja: '🇯🇵 日文',
-  zh: '🇨🇳 中文',
-  en: '🇺🇸 英文',
-  ko: '🇰🇷 韩文',
+  ja: '日语',
+  zh: '中文',
+  en: '英语',
+  ko: '韩语',
 };
 
 const LANG_OPTIONS: { value: SourceLang; label: string }[] = [
-  { value: 'ja', label: '🇯🇵 日文' },
-  { value: 'zh', label: '🇨🇳 中文' },
-  { value: 'en', label: '🇺🇸 英文' },
-  { value: 'ko', label: '🇰🇷 韩文' },
+  { value: 'ja', label: '日语' },
+  { value: 'zh', label: '中文' },
+  { value: 'en', label: '英语' },
+  { value: 'ko', label: '韩语' },
 ];
 
 const TARGET_LANG_OPTIONS: { value: string; label: string }[] = [
-  { value: 'zh-CN', label: '🇨🇳 简体中文' },
-  { value: 'en', label: '🇺🇸 英语' },
-  { value: 'ja', label: '🇯🇵 日语' },
-  { value: 'ko', label: '🇰🇷 韩语' },
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'en', label: '英语' },
+  { value: 'ja', label: '日语' },
+  { value: 'ko', label: '韩语' },
 ];
 
 // ===== Skeleton 加载组件 =====
@@ -92,10 +91,12 @@ function ProjectCard({
   project,
   onDelete,
   onToggleFavorite,
+  index = 0,
 }: {
   project: ProjectData;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string, fav: boolean) => void;
+  index?: number;
 }) {
   const progress = project.page_count
     ? (project.completed_count || 0) / project.page_count
@@ -104,93 +105,153 @@ function ProjectCard({
   const coverUrl = resolveProcessedImageUrl(project.cover_url);
 
   return (
-    <div className="glass-card-hover group block overflow-hidden relative animate-slide-up">
-      <Link href={`/pc/projects/${project.project_id}`}>
-        {/* 封面区域 */}
-        <div className="relative aspect-[3/4] bg-slate-100 dark:bg-slate-800 overflow-hidden">
-          {coverUrl ? (
-            <ProgressiveImage
-              src={coverUrl}
-              alt={project.name}
-              aspectRatio="3/4"
-              className="absolute inset-0 w-full h-full"
-              lazy={true}
-            />
-          ) : (
-            <>
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-violet-500 to-rose-400 opacity-85 dark:from-primary-600 dark:via-violet-600 dark:to-rose-500 group-hover:opacity-95 transition-opacity duration-300" />
-              {/* 装饰几何形状 */}
-              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 dark:bg-white/5 group-hover:scale-125 transition-transform duration-500" />
-              <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10 dark:bg-white/5 group-hover:scale-110 transition-transform duration-500 delay-75" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Image size={44} className="text-white/50 group-hover:scale-110 transition-transform duration-300" />
+    <div
+      className="group block overflow-hidden relative animate-fade-in-up"
+      style={{ animationDelay: `${index * 0.05}s` }}
+    >
+      {/* 玻璃态卡片容器 */}
+      <div className="glass-card-hover relative overflow-hidden rounded-2xl">
+        {/* 卡片顶部装饰渐变条 */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 via-blue-500 to-accent-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20" />
+
+        <Link href={`/pc/projects/${project.project_id}`}>
+          {/* 封面区域 */}
+          <div className="relative aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 overflow-hidden">
+            {coverUrl ? (
+              <>
+                <ProgressiveImage
+                  src={coverUrl}
+                  alt={project.name}
+                  aspectRatio="3/4"
+                  className="absolute inset-0 w-full h-full transition-transform duration-700 ease-out group-hover:scale-110"
+                  lazy={true}
+                />
+                {/* 封面悬停时的渐变叠加 */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-violet-500 to-rose-400 dark:from-primary-600 dark:via-violet-600 dark:to-rose-500 transition-all duration-700 ease-out group-hover:scale-105" />
+                {/* 装饰几何形状 */}
+                <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 group-hover:scale-150 transition-transform duration-700 ease-out" />
+                <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-700 ease-out delay-100" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="p-5 rounded-2xl bg-white/10 backdrop-blur-sm group-hover:bg-white/20 transition-all duration-500 group-hover:scale-110">
+                    <Image size={48} className="text-white/80 group-hover:text-white transition-all duration-500" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* 收藏标记 - 更精致的样式 */}
+            {project.is_favorite && (
+              <div className="absolute top-3 right-3 z-10">
+                <div className="p-1.5 rounded-lg bg-amber-400/90 backdrop-blur-sm shadow-lg shadow-amber-500/25">
+                  <Star size={16} className="text-white fill-white" />
+                </div>
               </div>
-            </>
-          )}
+            )}
 
-          {/* 收藏标记 */}
-          {project.is_favorite && (
-            <div className="absolute top-2.5 right-2.5">
-              <Star size={18} className="text-yellow-300 fill-yellow-300 drop-shadow-lg" />
+            {/* 进度条 - 更精致的设计 */}
+            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/30 backdrop-blur-sm">
+              <div
+                className={clsx(
+                  'h-full transition-all duration-1000 ease-out relative',
+                  isCompleted
+                    ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                    : 'bg-gradient-to-r from-white/90 to-white/70'
+                )}
+                style={{ width: `${Math.max(progress * 100, 2)}%` }}
+              >
+                {!isCompleted && progress > 0 && (
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-lg animate-pulse" />
+                )}
+              </div>
             </div>
-          )}
 
-          {/* 进度条 */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-            <div
-              className={clsx(
-                'h-full transition-all duration-700 ease-out',
-                isCompleted ? 'bg-emerald-400' : 'bg-white/80'
+            {/* 悬停时显示的操作按钮 */}
+            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-10">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  onToggleFavorite(project.project_id, project.is_favorite);
+                }}
+                className="p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-500 hover:text-amber-500 transition-all shadow-sm hover:shadow-md"
+                title={project.is_favorite ? '取消收藏' : '收藏'}
+              >
+                <Star size={14} className={project.is_favorite ? 'fill-amber-400 text-amber-400' : ''} />
+              </button>
+            </div>
+          </div>
+
+          {/* 信息区域 - 更精致的排版和间距 */}
+          <div className="p-4 space-y-3">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-snug">
+              {project.name}
+            </h3>
+
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 text-xs font-semibold">
+                <Languages size={12} />
+                {LANG_LABELS[project.source_lang] || project.source_lang}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                {project.completed_count || 0}/{project.page_count || 0} 页
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
+                <Clock size={11} className="flex-shrink-0" />
+                <span>{formatTime(project.updated_at)}</span>
+              </div>
+
+              {/* 完成标记 */}
+              {isCompleted && (project.page_count || 0) > 0 && (
+                <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                  <div className="p-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                    <CheckCircle2 size={10} />
+                  </div>
+                  <span>已完成</span>
+                </div>
               )}
-              style={{ width: `${progress * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* 信息区域 */}
-        <div className="p-3">
-          <h3 className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-            {project.name}
-          </h3>
-
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-medium">{LANG_LABELS[project.source_lang] || project.source_lang}</span>
-            <span>
-              {project.completed_count || 0}/{project.page_count || 0} 页
-            </span>
-          </div>
-
-          <div className="mt-1.5 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
-            <Clock size={11} />
-            <span>{formatTime(project.updated_at)}</span>
-          </div>
-
-          {/* 完成标记 */}
-          {isCompleted && (project.page_count || 0) > 0 && (
-            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-              <CheckCircle2 size={12} />
-              <span>已完成</span>
             </div>
-          )}
-        </div>
-      </Link>
 
-      {/* 更多操作按钮（卡片右上角） */}
-      <div className="absolute top-2.5 left-2.5 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0">
-        <Popconfirm
-          title="确定要删除这个作品吗？"
-          description="删除后可在回收站恢复"
-          onConfirm={() => onDelete(project.project_id)}
-          okText="确定"
-          cancelText="取消"
-        >
-          <button
-            className="p-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all shadow-sm"
-            onClick={(e) => e.preventDefault()}
+            {/* 进度百分比指示器 */}
+            {progress > 0 && !isCompleted && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">进度</span>
+                  <span className="font-semibold text-primary-600 dark:text-primary-400">{Math.round(progress * 100)}%</span>
+                </div>
+                <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${progress * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </Link>
+
+        {/* 删除按钮 */}
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-10">
+          <Popconfirm
+            title="确定要删除这个作品吗？"
+            description="删除后可在回收站恢复"
+            onConfirm={() => onDelete(project.project_id)}
+            okText="确定"
+            cancelText="取消"
           >
-            <Trash2 size={14} />
-          </button>
-        </Popconfirm>
+            <button
+              className="p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all shadow-sm hover:shadow-md"
+              onClick={(e) => e.preventDefault()}
+            >
+              <Trash2 size={14} />
+            </button>
+          </Popconfirm>
+        </div>
       </div>
     </div>
   );
@@ -777,12 +838,12 @@ function ProjectListPageContent() {
       {/* 顶部操作栏 */}
       <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text">
                 我的作品
               </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
                 {loading
                   ? '加载中...'
                   : error
@@ -791,28 +852,30 @@ function ProjectListPageContent() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              {/* 搜索 */}
-              <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* 搜索 - 更精致的样式 */}
+              <div className="relative group">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
                 <input
                   type="text"
                   placeholder="搜索作品..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-field pl-9 pr-4 py-2 w-52 text-sm"
+                  className="input-field pl-10 pr-4 py-2.5 w-56 text-sm rounded-2xl"
                 />
+                {/* 聚焦时的装饰 */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary-500/5 to-accent-500/5 opacity-0 focus-within:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
 
-              {/* 视图切换 */}
-              <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5">
+              {/* 视图切换 - 更精致的样式 */}
+              <div className="flex bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-1 shadow-sm">
                 <button
                   onClick={() => setViewMode('grid')}
                   className={clsx(
-                    'p-1.5 rounded-lg transition-all duration-200',
+                    'p-2 rounded-xl transition-all duration-300',
                     viewMode === 'grid'
-                      ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
-                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                      ? 'bg-white dark:bg-slate-700 shadow-md text-primary-600 dark:text-primary-400 shadow-slate-200/50 dark:shadow-slate-900/50'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/50'
                   )}
                   title="网格视图"
                 >
@@ -821,10 +884,10 @@ function ProjectListPageContent() {
                 <button
                   onClick={() => setViewMode('list')}
                   className={clsx(
-                    'p-1.5 rounded-lg transition-all duration-200',
+                    'p-2 rounded-xl transition-all duration-300',
                     viewMode === 'list'
-                      ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
-                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                      ? 'bg-white dark:bg-slate-700 shadow-md text-primary-600 dark:text-primary-400 shadow-slate-200/50 dark:shadow-slate-900/50'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/50'
                   )}
                   title="列表视图"
                 >
@@ -832,13 +895,13 @@ function ProjectListPageContent() {
                 </button>
               </div>
 
-              {/* 排序 */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800">
-                <ArrowUpDown size={13} className="text-slate-400" />
+              {/* 排序 - 更精致的样式 */}
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm">
+                <ArrowUpDown size={14} className="text-slate-400" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="text-sm bg-transparent border-none text-slate-600 dark:text-slate-300 cursor-pointer focus:outline-none font-medium"
+                  className="text-sm bg-transparent border-none text-slate-600 dark:text-slate-300 cursor-pointer focus:outline-none font-medium min-w-[80px]"
                 >
                   {sortOptions.map((opt) => (
                     <option key={opt.key} value={opt.key}>
@@ -848,12 +911,12 @@ function ProjectListPageContent() {
                 </select>
               </div>
 
-              {/* 新建作品 */}
+              {/* 新建作品 - 更精致的按钮 */}
               <button
-                className="btn-primary text-sm"
+                className="btn-primary text-sm px-5 py-2.5 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30"
                 onClick={handleCreateClick}
               >
-                <Plus size={16} />
+                <Plus size={18} />
                 新建作品
               </button>
             </div>
@@ -863,54 +926,66 @@ function ProjectListPageContent() {
 
       {/* 内容区域 */}
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* 免费用户订阅引导 Banner */}
+        {/* 免费用户订阅引导 Banner - 更精致的样式 */}
         {user?.plan_type !== 'premium' && (
-          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-purple-50/50 to-blue-50 dark:from-amber-950/20 dark:via-purple-950/15 dark:to-blue-950/15 border border-amber-200/60 dark:border-amber-800/30 flex items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-amber-500/30">
-                <Crown size={20} className="text-white" />
+          <div className="mb-8 p-5 rounded-3xl bg-gradient-to-r from-amber-50 via-purple-50/60 to-blue-50 dark:from-amber-950/25 dark:via-purple-950/20 dark:to-blue-950/20 border border-amber-200/50 dark:border-amber-800/30 flex items-center justify-between gap-5 shadow-lg shadow-amber-500/5 dark:shadow-amber-500/3 relative overflow-hidden">
+            {/* 装饰性背景渐变 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-100/20 via-transparent to-purple-100/20 dark:from-amber-900/10 dark:to-purple-900/10 opacity-50" />
+            <div className="flex items-center gap-4 relative">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/30 dark:shadow-amber-500/20 animate-float">
+                <Crown size={24} className="text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
                   升级高级版，解锁无限翻译
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   当前为免费版：每日 10 页、最多 10 个作品。高级版 ¥29/月起，畅享全部 AI 能力。
                 </p>
               </div>
             </div>
             <button
               onClick={() => router.push('/pc/plans')}
-              className="flex-shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-sm font-semibold transition-all duration-200 shadow-sm shadow-purple-500/25 hover:shadow-md hover:shadow-purple-500/30"
+              className="flex-shrink-0 px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-sm font-semibold transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 hover:translate-y-(-2px) relative overflow-hidden group"
             >
-              立即升级
+              <span className="relative z-10">立即升级</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-(-100%) group-hover:translate-x-(100%) transition-transform duration-700" />
             </button>
           </div>
         )}
 
-        {/* 快速操作卡片 - Bento Grid 风格 */}
+        {/* 快速操作卡片 - Bento Grid 风格 - 更精致的视觉效果 */}
         <div className="mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
             {/* 上传漫画 */}
             <div
               role="button"
               tabIndex={0}
-              className="glass-card p-5 cursor-pointer group relative overflow-hidden"
+              className="glass-card p-6 cursor-pointer group relative overflow-hidden"
               onClick={handleCreateClick}
               onKeyDown={(e) => e.key === 'Enter' && handleCreateClick()}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent dark:from-primary-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative flex items-start gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 dark:from-primary-500 dark:to-primary-700 flex items-center justify-center flex-shrink-0 shadow-sm shadow-primary-500/20 group-hover:shadow-md group-hover:shadow-primary-500/30 group-hover:scale-105 transition-all duration-300">
-                  <Upload size={22} className="text-white" />
+              {/* 悬停时的渐变背景 */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary-50/50 via-blue-50/30 to-transparent dark:from-primary-950/20 dark:via-blue-950/10 dark:to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+              {/* 装饰性渐变边框 */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary-400/20 via-blue-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ padding: '1px' }} />
+              <div className="relative flex items-start gap-5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 dark:from-primary-500 dark:to-primary-700 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/25 group-hover:shadow-xl group-hover:shadow-primary-500/30 group-hover:scale-110 transition-all duration-300">
+                  <Upload size={24} className="text-white" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     上传漫画
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                     支持 JPG/PNG/CBZ/ZIP/PDF 格式
                   </p>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-primary-500 dark:text-primary-400 font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
+                    <span>开始上传</span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="transition-transform duration-300 group-hover:translate-x-1">
+                      <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -919,51 +994,60 @@ function ProjectListPageContent() {
             <div
               role="button"
               tabIndex={0}
-              className="glass-card p-5 cursor-pointer group relative overflow-hidden"
+              className="glass-card p-6 cursor-pointer group relative overflow-hidden"
               onClick={handleQuickTranslate}
               onKeyDown={(e) => e.key === 'Enter' && handleQuickTranslate()}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-accent-500/5 to-transparent dark:from-orange-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative flex items-start gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-accent-400 to-accent-500 dark:from-accent-500 dark:to-accent-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-accent-500/20 group-hover:shadow-md group-hover:shadow-accent-500/30 group-hover:scale-105 transition-all duration-300">
-                  <Languages size={22} className="text-white" />
+              {/* 悬停时的渐变背景 */}
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-50/50 via-orange-50/30 to-transparent dark:from-amber-950/20 dark:via-orange-950/10 dark:to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+              {/* 装饰性渐变边框 */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-accent-400/20 via-orange-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ padding: '1px' }} />
+              <div className="relative flex items-start gap-5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-400 to-accent-500 dark:from-accent-500 dark:to-accent-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-accent-500/25 group-hover:shadow-xl group-hover:shadow-accent-500/30 group-hover:scale-110 transition-all duration-300">
+                  <Languages size={24} className="text-white" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
                     快速翻译
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                     拍照或选图，一键翻译导出
                   </p>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-accent-500 dark:text-accent-400 font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
+                    <span>立即翻译</span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="transition-transform duration-300 group-hover:translate-x-1">
+                      <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 加载状态 */}
+        {/* 加载状态 - 更精致的骨架屏 */}
         {loading && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
               <ProjectCardSkeleton key={i} />
             ))}
           </div>
         )}
 
-        {/* 错误状态 */}
+        {/* 错误状态 - 更精致的样式 */}
         {!loading && error && (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-400 dark:text-slate-500">
-            <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-5">
-              <AlertCircle size={32} className="text-red-400" />
+          <div className="flex flex-col items-center justify-center py-32 text-slate-400 dark:text-slate-500">
+            <div className="w-20 h-20 rounded-3xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-6 shadow-lg shadow-red-500/10 dark:shadow-red-500/5">
+              <AlertCircle size={36} className="text-red-400" />
             </div>
-            <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
+            <p className="text-xl font-bold text-slate-700 dark:text-slate-300">
               加载失败
             </p>
-            <p className="text-sm mt-1.5 text-slate-400 dark:text-slate-500 max-w-sm text-center">
+            <p className="text-sm mt-2 text-slate-400 dark:text-slate-500 max-w-sm text-center leading-relaxed">
               {error instanceof Error ? error.message : String(error || '未知错误')}
             </p>
             {hasAuth && (
-              <button className="btn-primary mt-6" onClick={() => refetch()}>
+              <button className="btn-primary mt-8 px-6" onClick={() => refetch()}>
                 <RefreshCw size={16} />
                 重试
               </button>
@@ -975,24 +1059,29 @@ function ProjectListPageContent() {
         {!loading && !error && (
           <>
             {filteredProjects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 text-slate-400 dark:text-slate-500">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-5">
-                  <Image size={32} className="text-slate-300 dark:text-slate-600" />
+              <div className="flex flex-col items-center justify-center py-32">
+                {/* 更精致的空状态 */}
+                <div className="relative mb-8">
+                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center shadow-lg">
+                    <Image size={40} className="text-slate-300 dark:text-slate-600" />
+                  </div>
+                  {/* 装饰性圆环 */}
+                  <div className="absolute inset-0 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 animate-spin-slow" style={{ animationDuration: '20s' }} />
                 </div>
-                <p className="text-lg font-semibold text-slate-600 dark:text-slate-400">
+                <p className="text-xl font-bold text-slate-600 dark:text-slate-400 mb-2">
                   {searchQuery ? '没有匹配的作品' : '还没有作品'}
                 </p>
-                <p className="text-sm mt-1.5 text-slate-400 dark:text-slate-500">
+                <p className="text-sm text-slate-400 dark:text-slate-500 mb-8 text-center max-w-sm leading-relaxed">
                   {searchQuery
                     ? '试试其他关键词'
-                    : '上传你的第一个漫画开始翻译吧'}
+                    : '上传你的第一个漫画，开始 AI 翻译之旅'}
                 </p>
                 {!searchQuery && (
                   <button
-                    className="btn-primary mt-6"
+                    className="btn-primary px-8 py-3 text-base"
                     onClick={handleCreateClick}
                   >
-                    <Upload size={16} />
+                    <Upload size={18} />
                     上传漫画
                   </button>
                 )}

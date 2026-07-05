@@ -23,8 +23,8 @@ const TARGET_LANG_OPTIONS = [
   { value: 'ko', label: '韩语' },
 ];
 
-const SUPPORTED_FORMATS_TEXT = 'JPG / PNG / CBZ / ZIP / RAR / PDF';
-const SUPPORTED_EXTENSIONS = '.jpg,.jpeg,.png,.cbz,.zip,.rar,.pdf';
+const SUPPORTED_FORMATS_TEXT = 'JPG / PNG / WebP / CBZ / ZIP / RAR / PDF';
+const SUPPORTED_EXTENSIONS = '.jpg,.jpeg,.png,.webp,.cbz,.zip,.rar,.pdf';
 
 type UploadState = 'idle' | 'creating' | 'uploading' | 'done' | 'error';
 

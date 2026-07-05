@@ -152,6 +152,7 @@ export function useAIPipeline({
           .map((r: any) => ({
             region_id: r.region_id,
             translated_text: r.translated_text,
+            font_id: r.style_config?.font_id,
             font_size: r.style_config?.font_size,
             font_family: r.style_config?.font_family,
             font_color: r.style_config?.color,

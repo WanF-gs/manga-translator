@@ -226,25 +226,29 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
                   prefetch={true}
                   onClick={closeMobileSidebar}
                   className={clsx(
-                    'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 ease-out relative',
+                    'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-300 ease-out relative group',
                     sidebarOpen ? 'px-3 py-2.5' : 'px-2 py-2.5 justify-center',
                     isActive
-                      ? 'bg-primary-50/80 text-primary-700 shadow-sm dark:bg-primary-950/40 dark:text-primary-300'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-gradient-to-r from-primary-50/90 to-blue-50/50 text-primary-700 shadow-sm dark:from-primary-950/50 dark:to-blue-950/30 dark:text-primary-300'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200'
                   )}
                   title={!sidebarOpen ? item.label : undefined}
                   style={{ animationDelay: `${index * 0.03}s` }}
                 >
-                  {/* 激活态左侧彩色指示条 */}
+                  {/* 激活态左侧彩色指示条 - 更精致的渐变 */}
                   {isActive && sidebarOpen && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-gradient-to-b from-primary-500 to-accent-500" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-gradient-to-b from-primary-400 via-blue-500 to-accent-500 shadow-sm shadow-primary-500/30" />
+                  )}
+                  {/* 悬停时的背景光晕效果 */}
+                  {!isActive && (
+                    <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   )}
                   <item.icon size={sidebarOpen ? 18 : 20} className={clsx(
-                    'flex-shrink-0 transition-all duration-200',
-                    isActive && 'scale-110 text-primary-600 dark:text-primary-400'
+                    'flex-shrink-0 transition-all duration-300',
+                    isActive && 'scale-110 text-primary-600 dark:text-primary-400 drop-shadow-sm drop-shadow-primary-500/20'
                   )} />
                   {sidebarOpen && (
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate font-semibold">{item.label}</span>
                   )}
                 </Link>
               );
@@ -326,8 +330,12 @@ export const PcLayout: React.FC<PcLayoutProps> = ({ children }) => {
         </aside>
       )}
 
-      {/* ===== 主内容区 ===== */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ===== 主内容区 - 添加精致的背景装饰 ===== */}
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* 背景装饰 - 微妙的渐变网格 */}
+        <div className="absolute inset-0 bg-dot-pattern opacity-[0.015] dark:opacity-[0.03] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-primary-500/5 via-blue-500/3 to-transparent dark:from-primary-400/5 dark:via-blue-400/3 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-accent-500/5 via-orange-500/3 to-transparent dark:from-accent-400/5 dark:via-orange-400/3 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2 pointer-events-none" />
         {/* 顶部栏 */}
         {!isEditorPage && (
           <div className="flex items-center justify-between px-5 py-2.5 gap-3 border-b border-slate-200/30 dark:border-slate-800/30 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-sm">

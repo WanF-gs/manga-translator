@@ -110,6 +110,8 @@ const nextConfig = {
 
   experimental: {
     optimizePackageImports: [
+      'antd',
+      'antd-mobile',
       'lucide-react',
       '@ant-design/icons',
       '@ant-design/icons-svg',

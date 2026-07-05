@@ -12,7 +12,10 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useExportHandlers } from '@/hooks/useExportHandlers';
 import { useProjectData } from '@/hooks/useProjectData';
 import { useRegionOperations } from '@/hooks/useRegionOperations';
-import { useQuery } from '@tanstack/react-query'; // D1: direct React Query import
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useQuery, useQueryClient } from '@tanstack/react-query'; // D1: direct React Query import
+import { batchPixelToPercent, getPageDimensions, isValidDimensions } from '@/utils/coords';
+import { pageApi } from '@/services/page';
 
 export type RightPanelMode = 'properties' | 'ocr' | 'export' | 'styles' | 'collaboration';
 
@@ -52,6 +55,12 @@ export function useEditorPageLogic(projectId: string) {
 
   const prevPageIdRef = useRef<string | null>(null);
   const autoDetectedPagesRef = useRef<Set<string>>(new Set());
+  // P0 FIX: 追踪管线是否正在执行，避免 refresh() 触发的 API 数据覆盖正在进行中的管线结果
+  const pipelineRunningRef = useRef(false);
+  // P0 FIX: 记录管线完成时间戳，在完成后 5 秒内阻止 useEffect 用 API 数据覆盖管线结果
+  const pipelineCompletedAtRef = useRef<number>(0);
+  const PIPELINE_SHIELD_MS = 5000;
+  const queryClient = useQueryClient();
   useEffect(() => {
     const prevPageId = prevPageIdRef.current;
     const pageIdChanged = prevPageId !== currentPageId;
@@ -61,18 +70,74 @@ export function useEditorPageLogic(projectId: string) {
     // 旧页面的气泡/OCR 文本残留在新页面的图片上，造成完全错误的叠加显示。
     if (pageIdChanged) {
       setRegions([]);
+      pipelineCompletedAtRef.current = 0; // 页面切换时清除保护
     }
 
     if (!Array.isArray(dataRegions)) return;
     if (dataRegions.length > 0) {
-      setRegions(dataRegions as TextRegion[]);
+      // P0 FIX: 管线运行中 或 刚完成（5秒内），不要用 API 返回的旧数据覆盖管线设置的结果
+      // 管线内部已通过 normalizeDetectRegion+setRegions 设置了正确格式化的 regions
+      // invalidateQueries 的 800ms 延迟触发使得 finally 中的 pipelineRunningRef=false 保护失效
+      const isPipelineShielded = pipelineRunningRef.current
+        || (Date.now() - pipelineCompletedAtRef.current < PIPELINE_SHIELD_MS);
+      if (isPipelineShielded) {
+        console.log('[useEditorPageLogic] pipeline shielded, skip overwriting. running:', pipelineRunningRef.current,
+          'ms since complete:', Date.now() - pipelineCompletedAtRef.current, 'store regions:', regions.length);
+        return;
+      }
+      // P0 FIX: API返回的regions是{boundary:{x,y,width,height}}格式，
+      // 但RegionOverlay读取的是EditorRegion的x/y/w/h。必须展开后才存入store。
+      const dims = getPageDimensions(currentPageData);
+      console.log('[useEditorPageLogic] dataRegions count:', dataRegions.length,
+        'dims:', dims,
+        'firstRegion:', JSON.stringify({
+          has_x: 'x' in (dataRegions[0] || {}),
+          has_boundary: 'boundary' in (dataRegions[0] || {}),
+          boundary_type: typeof (dataRegions[0] as any)?.boundary,
+          sample_boundary: (dataRegions[0] as any)?.boundary,
+        }));
+      if (isValidDimensions(dims)) {
+        const editorRegions = batchPixelToPercent(dataRegions as TextRegion[], dims);
+        console.log('[useEditorPageLogic] converted regions, first:', JSON.stringify({
+          x: editorRegions[0]?.x,
+          y: editorRegions[0]?.y,
+          w: editorRegions[0]?.w,
+          h: editorRegions[0]?.h,
+          region_id: editorRegions[0]?.region_id,
+          has_original: !!editorRegions[0]?.original_text,
+          has_translated: !!editorRegions[0]?.translated_text,
+        }));
+        setRegions(editorRegions);
+      } else {
+        // 兜底：无有效尺寸时直接展开boundary
+        const editorRegions = dataRegions.map((r: any) => ({
+          ...r,
+          x: r.boundary?.x ?? 0,
+          y: r.boundary?.y ?? 0,
+          w: r.boundary?.width ?? 100,
+          h: r.boundary?.height ?? 100,
+          points: r.boundary?.points ?? r.points,
+          boundary_mode: r.boundary_mode ?? (r.boundary?.points ? 'polygon' : 'rect'),
+        }));
+        setRegions(editorRegions);
+      }
     }
     // dataRegions 为空且页面未切换时，保持当前数据不动
   }, [dataRegions, setRegions, currentPageId]);
 
   // ── UI State ──
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  // Default open on desktop; keep closed on mobile (SSR-safe lazy init done in effect)
+  const [panelsInitialized, setPanelsInitialized] = useState(false);
+  useEffect(() => {
+    if (!panelsInitialized) {
+      setLeftPanelOpen(!isMobile);
+      setRightPanelOpen(!isMobile);
+      setPanelsInitialized(true);
+    }
+  }, [isMobile, panelsInitialized]);
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('properties');
   const [batchModalOpen, setBatchModalOpen] = useState(false);
   const [failedStep, setFailedStep] = useState<string | null>(null);
@@ -103,6 +168,46 @@ export function useEditorPageLogic(projectId: string) {
   }, [updateRegion, debouncedAutoSave]);
 
   // 包装所有会修改 regions 的操作，确保触发自动保存
+  // ── P1 FIX: 样式变更后自动重新渲染（字体更换等需要回填到图片）──
+  const reRenderPage = useCallback(async () => {
+    if (!currentPageId) return;
+    const status = (currentPageData as any)?.status;
+    // 仅在已渲染/已审核状态下才触发重渲染
+    if (status !== 'rendered' && status !== 'reviewed') return;
+
+    try {
+      const currentRegions = useEditorStore.getState().regions;
+      const renderRegions = currentRegions
+        .filter((r: any) => r.translated_text)
+        .map((r: any) => ({
+          region_id: r.region_id,
+          translated_text: r.translated_text,
+          font_id: r.style_config?.font_id,
+          font_size: r.style_config?.font_size,
+          font_family: r.style_config?.font_family,
+          font_color: r.style_config?.color,
+          alignment: r.style_config?.text_align,
+          line_spacing: r.style_config?.line_height,
+        }));
+
+      message.loading({ content: '正在重新渲染...', key: 're-render', duration: 0 });
+      const res = await pageApi.render(currentPageId, renderRegions.length > 0 ? renderRegions : undefined);
+      const newUrl = res.data?.processed_url || res.data?.result_url;
+      if (newUrl) {
+        queryClient.setQueryData(
+          ['pages', 'detail', currentPageId],
+          (old: any) => old ? { ...old, processed_url: newUrl } : old
+        );
+        message.success({ content: '渲染完成', key: 're-render', duration: 2 });
+      } else {
+        message.destroy('re-render');
+      }
+    } catch (err: any) {
+      console.error('[useEditorPageLogic] reRenderPage failed:', err);
+      message.error({ content: '重新渲染失败（后端可能不可用）', key: 're-render', duration: 3 });
+    }
+  }, [currentPageId, currentPageData, queryClient, message]);
+
   const regionOpsWithAutoSave = useMemo(() => ({
     ...regionOps,
     handleDeleteRegion: (rid: string) => {
@@ -117,13 +222,17 @@ export function useEditorPageLogic(projectId: string) {
       regionOps.handleApplyAll(rid);
       debouncedAutoSave();
     },
-    handleApplyStyle: (rid: string, style: any) => {
+    /** P1 FIX: 样式应用后自动触发重新渲染 */
+    handleApplyStyle: async (rid: string, style: any) => {
       regionOps.handleApplyStyle(rid, style);
       debouncedAutoSave();
+      await reRenderPage(); // 字体/样式变更 → 重渲染
     },
-    handleBatchApplyStyle: (rids: string[], style: any) => {
+    /** P1 FIX: 批量样式应用后自动触发重新渲染 */
+    handleBatchApplyStyle: async (rids: string[], style: any) => {
       regionOps.handleBatchApplyStyle(rids, style);
       debouncedAutoSave();
+      await reRenderPage(); // 批量字体替换 → 重渲染
     },
     handleCreateRegionAt: (x: number, y: number) => {
       const id = regionOps.handleCreateRegionAt(x, y);
@@ -146,7 +255,7 @@ export function useEditorPageLogic(projectId: string) {
       regionOps.handleConvertToRect(rid);
       debouncedAutoSave();
     },
-  }), [regionOps, debouncedAutoSave]);
+  }), [regionOps, debouncedAutoSave, reRenderPage]);
 
   // ── AI Pipeline ──
   const projectTargetLang = (project as any)?.default_target_lang;
@@ -157,14 +266,46 @@ export function useEditorPageLogic(projectId: string) {
   } else {
     console.log('[useEditorPageLogic] effective target_lang:', effectiveTargetLang);
   }
-  const { autoTranslate, retryStep: handleRetryStep, cancelPipeline } = useAIPipeline({
+  const { autoTranslate: rawAutoTranslate, retryStep: rawRetryStep, cancelPipeline } = useAIPipeline({
     currentPageId,
     projectSourceLang: (project as any)?.source_lang,
     defaultTargetLang: effectiveTargetLang,
     currentPageData,
     setRegions: (r: TextRegion[]) => setRegions(r),
-    setProcessedUrl: () => {},
+    setProcessedUrl: (url: string) => {
+      // P0 FIX: 真正更新 React Query 缓存中的 processed_url，使 Canvas 能渲染出结果图
+      if (currentPageId) {
+        queryClient.setQueryData(
+          ['pages', 'detail', currentPageId],
+          (old: any) => old ? { ...old, processed_url: url } : old
+        );
+      }
+    },
   });
+  
+  // 包装 autoTranslate，追踪管线状态并在完成后记录完成时间戳
+  const autoTranslate = useCallback(async () => {
+    pipelineRunningRef.current = true;
+    pipelineCompletedAtRef.current = 0;
+    try {
+      return await rawAutoTranslate();
+    } finally {
+      pipelineRunningRef.current = false;
+      pipelineCompletedAtRef.current = Date.now();
+      console.log('[useEditorPageLogic] pipeline completed at', pipelineCompletedAtRef.current);
+    }
+  }, [rawAutoTranslate]);
+  
+  const retryStep = useCallback(async (stepKey: string) => {
+    pipelineRunningRef.current = true;
+    pipelineCompletedAtRef.current = 0;
+    try {
+      return await rawRetryStep(stepKey);
+    } finally {
+      pipelineRunningRef.current = false;
+      pipelineCompletedAtRef.current = Date.now();
+    }
+  }, [rawRetryStep]);
 
   // Page switch cleanup — 仅在 pageId 真正切换时取消管线，避免 auto-select 或 effect 重跑误杀
   const prevPageIdForPipelineRef = useRef<string | null>(null);
@@ -191,23 +332,32 @@ export function useEditorPageLogic(projectId: string) {
       setFailedStep(result.failedStep);
       setStepErrorMessage(result.errorMessage || null);
     } else {
-      await refetchCurrentPage();
-      refresh();
+      // P0 FIX: autoTranslate 内部已通过 setRegions/setProcessedUrl 更新状态
+      // 仅在完全成功后做延迟刷新，确保服务端数据已持久化
+      setTimeout(() => {
+        if (currentPageId) {
+          queryClient.invalidateQueries({ queryKey: ['pages', 'detail', currentPageId] });
+        }
+      }, 800);
     }
-  }, [autoTranslate, refetchCurrentPage, refresh]);
+  }, [autoTranslate, currentPageId, queryClient]);
 
   const handleStepClick = useCallback(async (stepKey: string) => {
     setFailedStep(null);
     setStepErrorMessage(null);
-    const result = await handleRetryStep(stepKey);
+    const result = await retryStep(stepKey);
     if (result?.failedStep) {
       setFailedStep(result.failedStep);
       setStepErrorMessage(result.errorMessage || null);
     } else {
-      await refetchCurrentPage();
-      refresh();
+      // P0 FIX: retryStep 内部已通过 setRegions 更新状态，仅做延迟刷新
+      setTimeout(() => {
+        if (currentPageId) {
+          queryClient.invalidateQueries({ queryKey: ['pages', 'detail', currentPageId] });
+        }
+      }, 800);
     }
-  }, [handleRetryStep, refetchCurrentPage, refresh]);
+  }, [retryStep, currentPageId, queryClient]);
 
   // P1-001 FIX: 新页面无区域时自动触发文字检测
   useEffect(() => {
@@ -278,17 +428,19 @@ export function useEditorPageLogic(projectId: string) {
     toggleShowOriginal, activeStep, failedStep, stepErrorMessage,
     leftPanelOpen, setLeftPanelOpen, rightPanelOpen, setRightPanelOpen,
     rightPanelMode, setRightPanelMode, batchModalOpen,
+    isMobile,
     // Data
     project, chapters, currentPageId, currentPageData,
     isLoading, error, refresh,
     currentPageNumber, totalPages, completedPages,
     selectedRegion,
     // Handlers
-    handleSave, handleAutoTranslate, handleBatchTranslate, handleStepClick, handleRetryStep,
+    handleSave, handleAutoTranslate, handleBatchTranslate, handleStepClick, handleRetryStep: retryStep,
     handleExport, getAllPages, handleBatchComplete,
     handleCanvasSelectRegion, handleCanvasUpdateRegion,
     selectPage, updateRegion, regionOps: regionOpsWithAutoSave,
     handleUpdateRegion,
     getPageProcessing,
+    reRenderPage,
   };
 }

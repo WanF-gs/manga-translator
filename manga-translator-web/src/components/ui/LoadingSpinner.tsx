@@ -22,19 +22,26 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center gap-5',
+        'flex flex-col items-center justify-center gap-6',
         fullScreen
-          ? 'h-screen w-screen fixed inset-0 z-50 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl'
-          : 'py-20'
+          ? 'h-screen w-screen fixed inset-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl'
+          : 'py-24'
       )}
     >
+      {/* 更精致的加载动画 */}
       <div className="relative">
-        <Spin size={size}>
-          <div className={size === 'small' ? 'p-4' : size === 'default' ? 'p-6' : 'p-8'} />
-        </Spin>
+        {/* 外圈装饰 */}
+        <div className="w-16 h-16 rounded-full border-2 border-slate-100 dark:border-slate-800 absolute inset-0" />
+        <div className="w-16 h-16 rounded-full border-2 border-transparent border-t-primary-500 border-r-primary-400 animate-spin" />
+        {/* 内圈渐变 */}
+        <div className="absolute inset-1 rounded-full bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-950/30 dark:to-blue-950/20 flex items-center justify-center">
+          <Spin size={size === 'large' ? 'default' : 'small'}>
+            <div className={size === 'small' ? 'p-2' : size === 'default' ? 'p-3' : 'p-4'} />
+          </Spin>
+        </div>
       </div>
       {tip && (
-        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse-soft font-medium tracking-wide">
+        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium tracking-wide animate-pulse-soft">
           {tip}
         </p>
       )}

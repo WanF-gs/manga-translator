@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Hand, ImageOff } from 'lucide-react';
 import clsx from 'clsx';
 import { RegionOverlay } from './RegionOverlay';
@@ -33,6 +33,8 @@ interface CanvasProps {
   onUpdateRegion?: (regionId: string, data: Partial<EditorRegion>) => void;
   /** BUG FIX #3: 当前页面ID，用于翻页时重置画布平移状态 */
   pageId?: string | null;
+  /** P0: 渲染后视图（译文回填图）— 气泡隐身模式 */
+  isRenderedView?: boolean;
 }
 
 /** 中间画布：渲染当前页面图片 + 选区覆盖层 */
@@ -51,6 +53,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onSelectRegion,
   onUpdateRegion,
   pageId,
+  isRenderedView = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -213,7 +216,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   }, [onScaleChange]);
 
   // 计算适配容器的初始缩放
-  const fitScale = React.useMemo(() => {
+  const fitScale = useMemo(() => {
     if (!containerRef.current) return 100;
     const containerW = containerRef.current.clientWidth - 64;
     const containerH = containerRef.current.clientHeight - 64;
@@ -229,9 +232,28 @@ export const Canvas: React.FC<CanvasProps> = ({
   const baseW = naturalSize?.w || imageWidth;
   const baseH = naturalSize?.h || imageHeight;
   
+  // P0 FIX: coordScale 将后端像素坐标（基于 imageWidth/imageHeight 空间）映射到显示图像空间
+  // naturalSize 反映实际加载的图片尺寸（可能与 imageWidth 不同，如渲染图缩放后）
+  const coordScale = naturalSize ? naturalSize.w / imageWidth : 1;
+  
   // 使用 Math.round 确保像素级精确对齐，避免浮点数导致的子像素偏移
   const scaledW = Math.round(baseW * displayScale);
   const scaledH = Math.round(baseH * displayScale);
+  
+  // P0 DEBUG: 记录渲染参数，用于排查坐标偏移问题
+  useEffect(() => {
+    if (imgLoaded && regions.length > 0) {
+      console.log('[Canvas] render params:', {
+        baseW, baseH, coordScale, scalePercent: scale,
+        naturalSize, apiSize: { w: imageWidth, h: imageHeight },
+        firstRegion: regions[0] ? { x: regions[0].x, y: regions[0].y, w: regions[0].w, h: regions[0].h } : null,
+        renderedPos: regions[0] ? {
+          left: Math.round(regions[0].x * displayScale * coordScale),
+          top: Math.round(regions[0].y * displayScale * coordScale),
+        } : null,
+      });
+    }
+  }, [imgLoaded, regions.length, baseW, baseH, coordScale, scale, imageWidth, imageHeight]);
 
   return (
     <div className="flex-1 flex flex-col bg-slate-200 dark:bg-slate-950 relative min-h-0">
@@ -404,9 +426,10 @@ export const Canvas: React.FC<CanvasProps> = ({
               scalePercent={scale}
               imageWidth={baseW}
               imageHeight={baseH}
-              coordScale={naturalSize ? naturalSize.w / imageWidth : 1}
+              coordScale={coordScale}
               onSelect={onSelectRegion}
               onUpdateRegion={onUpdateRegion}
+              isRenderedView={isRenderedView}
             />
           )}
         </div>

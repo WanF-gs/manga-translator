@@ -20,6 +20,8 @@ interface RegionOverlayProps {
   imageHeight: number;
   /** 坐标缩放因子：后端API坐标空间 → 图片自然像素空间的缩放比 (naturalW / apiW) */
   coordScale?: number;
+  /** P0: 渲染后视图（译文回填图）— 气泡视觉隐藏但保留点击交互 */
+  isRenderedView?: boolean;
   onSelect: (regionId: string | null) => void;
   onUpdateRegion?: (regionId: string, data: Partial<EditorRegion>) => void;
 }
@@ -53,6 +55,7 @@ const PolygonRegion = React.memo(function PolygonRegion({
   coordScale,
   onSelect,
   onUpdateRegion,
+  isStealth = false,
 }: {
   region: EditorRegion;
   isSelected: boolean;
@@ -64,6 +67,7 @@ const PolygonRegion = React.memo(function PolygonRegion({
   coordScale: number;
   onSelect: (id: string | null) => void;
   onUpdateRegion?: (regionId: string, data: Partial<EditorRegion>) => void;
+  isStealth?: boolean;
 }) {
   const config = REGION_TYPE_CONFIGS[region.type as RegionType] ?? REGION_TYPE_CONFIGS.speech;
   const isLocked = region.is_locked;
@@ -171,22 +175,23 @@ const PolygonRegion = React.memo(function PolygonRegion({
       height={svgH}
       style={{ pointerEvents: 'none' }}
     >
-      {/* 多边形主体：半透明填充（默认30%），不遮挡下方画面细节 [§2.2.8] */}
+      {/* 多边形主体：隐身模式完全透明，默认半透明填充 */}
       <polygon
         points={ptsAttr}
-        fill={strokeColor}
-        fillOpacity={isSelected ? 0.22 : 0.14}
-        stroke={strokeColor}
-        strokeWidth={Math.max(1.5, 2 / (scalePercent / 100)) * coordScale}
-        strokeDasharray={isLocked ? '6 4' : undefined}
-        style={{ pointerEvents: 'auto', cursor: isLocked ? 'not-allowed' : 'move' }}
+        fill={isStealth ? 'transparent' : strokeColor}
+        fillOpacity={isStealth ? 0 : (isSelected ? 0.22 : 0.14)}
+        stroke={isStealth ? 'transparent' : strokeColor}
+        strokeWidth={isStealth ? 0 : Math.max(1.5, 2 / (scalePercent / 100)) * coordScale}
+        strokeDasharray={isStealth || isLocked ? (isStealth ? undefined : '6 4') : undefined}
+        style={{ pointerEvents: 'auto', cursor: isLocked ? 'not-allowed' : (isStealth ? 'pointer' : 'move') }}
         onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : region.region_id); }}
         onPointerDown={(e) => onVertexDown(e, 'poly')}
         onPointerMove={onVertexMove}
         onPointerUp={onVertexUp}
       />
 
-      {/* 类型标签（贴包围盒左上角） */}
+      {/* 类型标签（贴包围盒左上角）— 隐身模式下不显示 */}
+      {!isStealth && (
       <foreignObject x={bb.x * displayScale} y={bb.y * displayScale - 18} width={90} height={18} style={{ pointerEvents: 'none' }}>
         <span
           className="text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap text-white shadow-sm max-w-[80px] truncate inline-block"
@@ -195,9 +200,10 @@ const PolygonRegion = React.memo(function PolygonRegion({
           {config.label}▱{isLocked && ' 🔒'}
         </span>
       </foreignObject>
+      )}
 
-      {/* 文字预览（居中于包围盒） */}
-      {(text || isBilingual) && (
+      {/* 文字预览（居中于包围盒）— 隐身模式下不显示 */}
+      {!isStealth && (text || isBilingual) && (
         <foreignObject
           x={bb.x * displayScale} y={bb.y * displayScale}
           width={bb.w * displayScale} height={bb.h * displayScale}
@@ -226,8 +232,8 @@ const PolygonRegion = React.memo(function PolygonRegion({
         </foreignObject>
       )}
 
-      {/* 选中且未锁定：中点“加点”手柄 + 顶点手柄 */}
-      {isSelected && !isLocked && (
+      {/* 选中且未锁定且非隐身模式：中点"加点"手柄 + 顶点手柄 */}
+      {isSelected && !isLocked && !isStealth && (
         <>
           {points.map((a, i) => {
             const b = points[(i + 1) % points.length];
@@ -277,6 +283,7 @@ const RegionRect = React.memo(function RegionRect({
   coordScale,
   onSelect,
   onUpdateRegion,
+  isStealth = false,
 }: {
   region: EditorRegion;
   isSelected: boolean;
@@ -288,6 +295,7 @@ const RegionRect = React.memo(function RegionRect({
   coordScale: number;
   onSelect: (id: string | null) => void;
   onUpdateRegion?: (regionId: string, data: Partial<EditorRegion>) => void;
+  isStealth?: boolean;
 }) {
   const config = REGION_TYPE_CONFIGS[region.type as RegionType] ?? REGION_TYPE_CONFIGS.speech;
   const text = showOriginal ? region.original_text : region.translated_text;
@@ -389,34 +397,42 @@ const RegionRect = React.memo(function RegionRect({
         onPointerUp={handlePointerUp}
         className={clsx(
           'absolute rounded-md transition-all duration-150',
-          config.bg,
-          isSelected
-            ? 'ring-2 ring-primary-500 ring-offset-1 z-10 shadow-lg'
-            : 'hover:ring-1 hover:ring-primary-300',
-          isLowConfidence && isSelected && 'animate-pulse',
-          !isLocked && 'cursor-move'
+          isStealth ? 'cursor-pointer hover:bg-primary-500/10' : [
+            config.bg,
+            isSelected
+              ? 'ring-2 ring-primary-500 ring-offset-1 z-10 shadow-lg'
+              : 'hover:ring-1 hover:ring-primary-300',
+            isLowConfidence && isSelected && 'animate-pulse',
+            !isLocked && 'cursor-move'
+          ]
         )}
         style={{
           // UNIFIED: renderedX = originalX × displayScale
-          // 容器尺寸 = 图片自然尺寸 × displayScale，region.x 为自然像素坐标
           left: `${region.x * displayScale}px`,
           top: `${region.y * displayScale}px`,
           width: `${region.w * displayScale}px`,
           height: `${region.h * displayScale}px`,
           boxSizing: 'border-box',
-          borderWidth,
-          borderColor: isSelected
-            ? '#3B82F6'
-            : hasMissingGlyphs
-            ? '#EF4444'
-            : isLowConfidence
-            ? '#EF4444'
-            : config.color,
-          borderStyle: hasMissingGlyphs ? 'dashed' : isLocked ? 'dashed' : 'solid',
+          // 隐身模式：视觉完全透明但可点击
+          ...(isStealth ? {
+            opacity: isSelected ? 0.25 : 0,
+            borderWidth: 0,
+          } : {
+            borderWidth,
+            borderColor: isSelected
+              ? '#3B82F6'
+              : hasMissingGlyphs
+              ? '#EF4444'
+              : isLowConfidence
+              ? '#EF4444'
+              : config.color,
+            borderStyle: hasMissingGlyphs ? 'dashed' : isLocked ? 'dashed' : 'solid',
+          }),
           touchAction: 'none',
         }}
       >
-        {/* 类型标签 */}
+      {/* 类型标签 — 隐身模式下不显示 */}
+      {!isStealth && (
         <Tooltip title={`${config.label}${isLocked ? '（已锁定）' : ''}${isLowConfidence ? ' · 低置信度' : ''}${hasMissingGlyphs ? ` · 缺${glyphCount}字` : ''}`}>
           <span
             className="absolute -top-5 left-0 text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap text-white shadow-sm pointer-events-none max-w-[72px] truncate"
@@ -431,8 +447,10 @@ const RegionRect = React.memo(function RegionRect({
             {isLowConfidence && isSelected && !hasMissingGlyphs && ' ⚠'}
           </span>
         </Tooltip>
+      )}
 
-        {/* 文字预览 */}
+      {/* 文字预览 — 隐身模式下不显示 */}
+      {!isStealth && (
         <div
           className="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden pointer-events-none gap-0.5"
           style={{
@@ -468,15 +486,16 @@ const RegionRect = React.memo(function RegionRect({
             {(isBilingual ? region.translated_text : text) || '...'}
           </span>
         </div>
+      )}
 
-        {/* 锁定指示器 */}
-        {isLocked && (
+        {/* 锁定指示器 — 隐身模式不显示 */}
+      {!isStealth && isLocked && (
           <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border border-white dark:border-slate-800 pointer-events-none" />
         )}
       </div>
 
-      {/* 缩放手柄（选中且未锁定时显示） */}
-      {isSelected && !isLocked && (
+      {/* 缩放手柄 — 选中且未锁定且非隐身模式时显示 */}
+      {isSelected && !isLocked && !isStealth && (
         <>
           {/* 四角 */}
           {(['nw', 'ne', 'sw', 'se'] as const).map((corner) => {
@@ -571,18 +590,24 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
   imageWidth,
   imageHeight,
   coordScale = 1,
+  isRenderedView = false,
   onSelect,
   onUpdateRegion,
 }) => {
-  // 调试：只在区域数量变化时输出日志（避免缩放时频繁输出）
+  // 调试：只在区域数量变化或关键参数变化时输出日志
   const overlayRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(regions.length);
   useEffect(() => {
     if (typeof window !== 'undefined' && prevCountRef.current !== regions.length) {
       prevCountRef.current = regions.length;
-      console.log('[RegionOverlay] rendering', regions.length, 'regions, baseW:', imageWidth, 'baseH:', imageHeight);
+      console.log('[RegionOverlay] rendering', regions.length, 'regions, baseW:', imageWidth, 'baseH:', imageHeight,
+        'coordScale:', coordScale, 'scalePercent:', scalePercent,
+        'firstRegion:', regions[0] ? { region_id: regions[0].region_id, x: regions[0].x, y: regions[0].y, w: regions[0].w, h: regions[0].h,
+          renderedX: Math.round(regions[0].x * (scalePercent / 100) * coordScale),
+          renderedY: Math.round(regions[0].y * (scalePercent / 100) * coordScale),
+        } : 'none');
     }
-  }, [regions, imageWidth, imageHeight]);
+  }, [regions, imageWidth, imageHeight, coordScale, scalePercent]);
 
   const displayScale = (scalePercent / 100) * coordScale;
 
@@ -625,6 +650,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
               coordScale={coordScale}
               onSelect={onSelect}
               onUpdateRegion={onUpdateRegion}
+              isStealth={isRenderedView}
             />
           );
         }
@@ -641,6 +667,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
             coordScale={coordScale}
             onSelect={onSelect}
             onUpdateRegion={onUpdateRegion}
+            isStealth={isRenderedView}
           />
         );
       })}
