@@ -21,7 +21,7 @@ export OPENAI_API_BASE="https://api.deepseek.com/v1"
 export OPENAI_MODEL="deepseek-chat"
 
 cd "$SERVICES"
-mkdir -p /tmp/fonts /tmp/manga-uploads
+mkdir -p /tmp/fonts "$PROJECT/data/uploads"
 
 echo "=== Restarting core services ==="
 

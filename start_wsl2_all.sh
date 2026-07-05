@@ -67,6 +67,7 @@ export TENCENT_SECRET_ID="${TENCENT_SECRET_ID:-YOUR_TENCENT_SECRET_ID}"
 export TENCENT_SECRET_KEY="${TENCENT_SECRET_KEY:-YOUR_TENCENT_SECRET_KEY}"
 export TENCENT_TMT_REGION="ap-guangzhou"
 export UPLOAD_DIR="$PROJECT/data/uploads"
+export LOCAL_UPLOADS_DIR="$PROJECT/data/uploads"  # image_service render/inpaint/enhance 子模块用的变量
 
 # ---- 豆包视觉翻译 (火山方舟 Multimodal Engine) ----
 # 模型: doubao-seed-evolving (多模态, 支持图片输入)

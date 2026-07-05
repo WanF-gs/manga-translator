@@ -37,7 +37,7 @@ bash /mnt/c/Users/WanFi/Desktop/大三实训/demo_04/start_wsl2_all.sh
 1. **环境变量**中所有服务地址用 `localhost`，不用 Docker 服务名（如 `postgres`、`user-service`）
 2. **DATABASE_URL** 端口是 5433
 3. **FONT_DIR** 用 WSL2 路径 `/mnt/c/Users/WanFi/Desktop/...`，不是 Windows 路径
-4. **UPLOAD_DIR** 设为 `/tmp/manga-uploads`（避免权限问题）
+4. **UPLOAD_DIR** 用 WSL2 持久化路径 `/mnt/c/Users/WanFi/Desktop/.../data/uploads`（不能放到 `/tmp`，WSL 重启会清空）
 5. 服务进程使用 `nohup` + `disown` 后台运行，日志在 `/tmp/mt-svc-*.log`
 6. Go 网关 (8080) 不在一键启动脚本中，需要单独编译
 7. 前端代码在 `manga-translator-web/`，后端代码在 `manga-translator-backend/services/`
