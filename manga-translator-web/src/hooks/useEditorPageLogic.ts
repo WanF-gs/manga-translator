@@ -168,12 +168,12 @@ export function useEditorPageLogic(projectId: string) {
   }, [updateRegion, debouncedAutoSave]);
 
   // 包装所有会修改 regions 的操作，确保触发自动保存
-  // ── P1 FIX: 样式变更后自动重新渲染（字体更换等需要回填到图片）──
+  // ── P0 FIX: 样式变更后自动重新渲染（字体更换等需要回填到图片）──
   const reRenderPage = useCallback(async () => {
     if (!currentPageId) return;
-    const status = (currentPageData as any)?.status;
-    // 仅在已渲染/已审核状态下才触发重渲染
-    if (status !== 'rendered' && status !== 'reviewed') return;
+    // P0: 改用 processed_url 存在性判断（status='rendered' 不是有效的 PageStatus 值）
+    const hasProcessedUrl = !!(currentPageData as any)?.processed_url;
+    if (!hasProcessedUrl) return;
 
     try {
       const currentRegions = useEditorStore.getState().regions;
@@ -192,7 +192,9 @@ export function useEditorPageLogic(projectId: string) {
 
       message.loading({ content: '正在重新渲染...', key: 're-render', duration: 0 });
       const res = await pageApi.render(currentPageId, renderRegions.length > 0 ? renderRegions : undefined);
-      const newUrl = res.data?.processed_url || res.data?.result_url;
+      // P0: API 返回格式 {code:0, data:{result_url:...}}，需正确解析
+      const resData = res.data?.data || res.data;
+      const newUrl = resData?.result_url || resData?.processed_url;
       if (newUrl) {
         queryClient.setQueryData(
           ['pages', 'detail', currentPageId],

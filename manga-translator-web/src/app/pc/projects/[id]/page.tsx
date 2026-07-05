@@ -160,9 +160,7 @@ function EditorPage() {
                     onScaleChange={logic.setCanvasScale}
                     onSelectRegion={logic.handleCanvasSelectRegion}
                     onUpdateRegion={logic.handleCanvasUpdateRegion}
-                    isRenderedView={
-                      logic.currentPageData?.status === 'rendered' || logic.currentPageData?.status === 'reviewed'
-                    }
+                    isRenderedView={!!((logic.currentPageData as any)?.processed_url)}
                   />
                 </div>
               </div>
@@ -188,9 +186,7 @@ function EditorPage() {
                     onScaleChange={logic.setCanvasScale}
                     onSelectRegion={logic.handleCanvasSelectRegion}
                     onUpdateRegion={logic.handleCanvasUpdateRegion}
-                    isRenderedView={
-                      logic.currentPageData?.status === 'rendered' || logic.currentPageData?.status === 'reviewed'
-                    }
+                    isRenderedView={!!((logic.currentPageData as any)?.processed_url)}
                   />
                 </div>
               </div>
@@ -212,7 +208,7 @@ function EditorPage() {
               onUpdateRegion={logic.handleCanvasUpdateRegion}
               isRenderedView={
                 logic.displayMode !== 'original' &&
-                (logic.currentPageData?.status === 'rendered' || logic.currentPageData?.status === 'reviewed')
+                !!((logic.currentPageData as any)?.processed_url)
               }
             />
           )}
