@@ -220,9 +220,11 @@ export function useEditorPageLogic(projectId: string) {
       regionOps.handleToggleLock(rid);
       debouncedAutoSave();
     },
-    handleApplyAll: (rid: string) => {
+    /** P0 FIX: 全局样式应用后自动触发重新渲染 */
+    handleApplyAll: async (rid: string) => {
       regionOps.handleApplyAll(rid);
       debouncedAutoSave();
+      await reRenderPage();
     },
     /** P1 FIX: 样式应用后自动触发重新渲染 */
     handleApplyStyle: async (rid: string, style: any) => {
